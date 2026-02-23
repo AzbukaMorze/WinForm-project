@@ -1,0 +1,20 @@
+# Build artifacts
+**/bin/
+**/obj/
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code local state
+.vscode/*.log
+.vscode/*.tmp
+.vscode/*.cache
+
+# Test / coverage
+TestResults/
+*.coverage
+*.coveragexml
