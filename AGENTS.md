@@ -1,4 +1,4 @@
-# AGENTS.md
+﻿# AGENTS.md
 
 Контекст и инструкции для будущих сессий Codex в этом репозитории.
 
@@ -13,7 +13,9 @@
 
 ## Где что находится
 - `ImageContrastApp/Program.cs`: вход в приложение.
-- `ImageContrastApp/MainForm.cs`: UI + обработчики кнопок + алгоритм контраста.
+- `ImageContrastApp/MainForm.cs`: layout и инициализация UI.
+- `ImageContrastApp/MainForm.Actions.cs`: обработчики формы и работа с файлами.
+- `ImageContrastApp/ImageContrastProcessor.cs`: алгоритмическая логика обработки изображения.
 - `.vscode/launch.json`: конфиг F5 для VS Code.
 - `.vscode/tasks.json`: build task для VS Code.
 
@@ -32,3 +34,4 @@
 - `dotnet build` проходит без ошибок.
 - Нет артефактов сборки в репозитории (`bin/`, `obj/`).
 - Обновлен `README.md`, если изменился запуск или функционал.
+

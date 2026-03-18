@@ -1,4 +1,4 @@
-# ImageContrastApp
+﻿# ImageContrastApp
 
 Windows Forms приложение на C# для:
 - загрузки изображения;
@@ -29,5 +29,8 @@ dotnet run --project .\ImageContrastApp\ImageContrastApp.csproj
 
 ## Структура
 - `ImageContrastApp/Program.cs` - точка входа.
-- `ImageContrastApp/MainForm.cs` - UI и логика загрузки/обработки/сохранения.
+- `ImageContrastApp/MainForm.cs` - layout и инициализация UI.
+- `ImageContrastApp/MainForm.Actions.cs` - обработчики формы, загрузка и сохранение.
+- `ImageContrastApp/ImageContrastProcessor.cs` - алгоритм обработки изображения.
 - `.vscode/launch.json`, `.vscode/tasks.json` - запуск и сборка из VS Code.
+
