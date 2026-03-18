@@ -44,8 +44,8 @@ public sealed partial class MainForm
             return;
         }
 
-        float factor = (float)numContrastFactor.Value;
-        Bitmap adjusted = ImageContrastProcessor.AdjustContrast(originalImage, factor);
+        float globalContrastK = (float)numContrastFactor.Value;
+        Bitmap adjusted = ImageContrastProcessor.AdjustGlobalContrast(originalImage, globalContrastK);
         SetDisplayedImage(adjusted);
     }
 
@@ -101,3 +101,4 @@ public sealed partial class MainForm
         };
     }
 }
+

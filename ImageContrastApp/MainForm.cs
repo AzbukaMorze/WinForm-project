@@ -61,7 +61,7 @@ public sealed partial class MainForm : Form
 
         var lblContrast = new Label
         {
-            Text = "Factor:",
+            Text = "k (Global CC):",
             AutoSize = true,
             Left = 438,
             Top = 21
@@ -71,9 +71,9 @@ public sealed partial class MainForm : Form
         {
             DecimalPlaces = 2,
             Increment = 0.10m,
-            Minimum = 0.00m,
-            Maximum = 4.00m,
-            Value = 1.20m,
+            Minimum = -0.99m,
+            Maximum = 3.00m,
+            Value = 0.20m,
             Width = 80,
             Left = 490,
             Top = 17
@@ -96,3 +96,4 @@ public sealed partial class MainForm : Form
         Controls.Add(topPanel);
     }
 }
+

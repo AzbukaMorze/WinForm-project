@@ -15,7 +15,7 @@
 - `ImageContrastApp/Program.cs`: вход в приложение.
 - `ImageContrastApp/MainForm.cs`: layout и инициализация UI.
 - `ImageContrastApp/MainForm.Actions.cs`: обработчики формы и работа с файлами.
-- `ImageContrastApp/ImageContrastProcessor.cs`: алгоритмическая логика обработки изображения.
+- `ImageContrastApp/ImageContrastProcessor.cs`: average-based global contrast logic.
 - `.vscode/launch.json`: конфиг F5 для VS Code.
 - `.vscode/tasks.json`: build task для VS Code.
 
@@ -34,4 +34,5 @@
 - `dotnet build` проходит без ошибок.
 - Нет артефактов сборки в репозитории (`bin/`, `obj/`).
 - Обновлен `README.md`, если изменился запуск или функционал.
+
 
