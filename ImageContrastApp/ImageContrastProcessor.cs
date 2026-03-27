@@ -47,7 +47,7 @@ internal static class ImageContrastProcessor
                     float b = sourceBuffer[sIndex] / 255f;
                     float g = sourceBuffer[sIndex + 1] / 255f;
                     float r = sourceBuffer[sIndex + 2] / 255f;
-                    float luminance = (0.299f * r) + (0.587f * g) + (0.114f * b);
+                    float luminance = (0.2126f * r) + (0.7152f * g) + (0.0722f * b);
 
                     luminanceValues[pixelIndex] = luminance;
                     luminanceSum += luminance;
