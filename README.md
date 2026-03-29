@@ -1,56 +1,97 @@
-﻿# ImageContrastApp
+# ImageContrastApp
 
 Windows Forms application for:
 - loading an image;
-- applying average-based global contrast correction;
+- applying grayscale contrast enhancement;
 - saving the processed result.
 
-## What stays on `main`
-- Modernized WinForms styling from the feature work: centered image card, rounded buttons, light/dark theme, cleaner top toolbar.
-- Split file structure for maintainability.
-- One algorithm only: global contrast change relative to the average luminance of the whole image.
+## Current Branch
+This `grayscale` branch contains a grayscale-focused version of the app.
 
-## What is intentionally removed from `main`
-- `Local TV` mode.
-- Local window parameters, presets, and fragment-based controls.
-- Any previous midpoint-based contrast logic around `0.5`.
+Implemented modes:
+- global television-style contrast transform for grayscale brightness;
+- local fragment contrast transform for grayscale brightness with methods 1, 2, and 3.
 
-`Local TV` will be rewritten later from scientific sources as a separate, cleaner implementation.
+Color images can still be loaded, but they are converted to grayscale brightness before processing. Output images are saved as grayscale (`R = G = B`).
 
-## Global Contrast Algorithm
-Formula:
+## Processing Model
+All processing in this branch works on grayscale brightness:
+
 ```text
-z = y + k * (y - y_avg)
+y = 0.2126R + 0.7152G + 0.0722B
+```
+
+Brightness values are rounded to the nearest integer and clamped to `[0, 255]`.
+
+## Global TV Contrast
+The global mode applies a television-style grayscale transform:
+
+```text
+z = y + k(y - y_bar)
+k = sigma_z / sigma_y - 1
 ```
 
 Where:
-- `y` is the luminance of the current pixel.
-- `z` is the new luminance after contrast correction.
-- `y_avg` is the average luminance of the full image.
-- `k` is the user-controlled global contrast coefficient.
+- `y` is the source brightness;
+- `z` is the transformed brightness;
+- `y_bar` is the global mean brightness;
+- `sigma_y` is the source-image standard deviation;
+- `sigma_z` is the target standard deviation selected in the UI.
 
-Interpretation:
-- `k = 0` keeps the image unchanged.
-- `k > 0` increases contrast.
-- `-1 < k < 0` decreases contrast.
+Notes:
+- if `sigma_y = 0`, the image remains unchanged;
+- the output is grayscale only.
 
-Implementation notes:
-- Pixel processing uses `LockBits` + `Marshal.Copy` for performance.
-- Contrast is applied in the luminance domain.
-- RGB color is reconstructed via luminance ratio scaling to preserve hue better than per-channel stretching.
+## Local Fragment Methods
+The local mode scans a rectangular fragment over the image with:
+- horizontal stride `1` pixel;
+- vertical stride `1` pixel;
+- cropped fragment bounds at image borders.
+
+Overlap handling follows the paper-style sequential rule:
+- if an output pixel has not been written yet, write the new value directly;
+- otherwise overwrite it with `(old + new) / 2`.
+
+Supported local methods:
+
+### Method 1
+Uses a fragment transform driven by the global target deviation.
+
+### Method 2
+Uses a fragment-specific coefficient:
+
+```text
+k_frag = sigma_gl_z / sigma_frag_y - 1
+```
+
+If `sigma_frag_y = 0`, the fragment is copied unchanged.
+
+### Method 3
+Uses the generalized coefficient:
+
+```text
+k_frag = (sigma_gl_z / sigma_frag_y) * (sigma_frag_y / sigma_gl_y)^(1 - q) - 1
+```
+
+This branch uses adaptive `q`:
+
+```text
+q = clamp(1 - sigma_gl_y / 80, 0, 1)
+```
+
+So lower-contrast images receive stronger local adaptation automatically.
 
 ## UI Features
-- `Load`, `Apply Contrast`, `Save` action buttons.
-- Light and dark theme selector.
-- Image viewport centered with padding and roughly 90% fill of the available canvas.
-- Rounded controls and modernized neutral palette.
+- fixed dark UI style;
+- `Load`, `Apply`, `Save` buttons;
+- mode selector: `Global Contrast` / `Local Fragment`;
+- target standard deviation input `σz`;
+- local method selector: `Method 1`, `Method 2`, `Method 3`;
+- fragment width and height controls;
+- optional multithreaded fragment processing;
+- centered image viewport with rounded controls.
 
-## Run (Visual Studio)
-1. Open `WinForm project.sln` or `ImageContrastApp/ImageContrastApp.csproj`.
-2. Restore packages if prompted.
-3. Start with `F5`.
-
-## Run (CLI)
+## Run
 ```powershell
 dotnet build .\ImageContrastApp\ImageContrastApp.csproj
 dotnet run --project .\ImageContrastApp\ImageContrastApp.csproj
@@ -59,12 +100,13 @@ dotnet run --project .\ImageContrastApp\ImageContrastApp.csproj
 ## Requirements
 - .NET SDK `10.0+`
 - Runtime `Microsoft.WindowsDesktop.App` `10.0+`
-- Optional: Visual Studio with `.NET Desktop Development`
 
 ## Structure
 - `ImageContrastApp/Program.cs` - entry point.
-- `ImageContrastApp/MainForm.cs` - form layout and control initialization.
-- `ImageContrastApp/MainForm.Actions.cs` - form actions, image loading, saving, disposal.
-- `ImageContrastApp/MainForm.Styling.cs` - theme, rounded controls, and layout styling helpers.
-- `ImageContrastApp/ImageContrastProcessor.cs` - average-based global contrast algorithm.
-- `.vscode/launch.json`, `.vscode/tasks.json` - VS Code run/build config.
+- `ImageContrastApp/MainForm.cs` - form layout and controls.
+- `ImageContrastApp/MainForm.Actions.cs` - form actions and mode handling.
+- `ImageContrastApp/MainForm.Styling.cs` - fixed dark styling helpers.
+- `ImageContrastApp/ImageContrastProcessor.cs` - global grayscale TV contrast.
+- `ImageContrastApp/LocalFragmentProcessing.cs` - local fragment engine and formulas.
+- `ImageContrastApp/GrayImageBuffer.cs` - grayscale image conversion and bitmap output.
+- `ImageContrastApp/BitmapPixelBuffer.cs` - low-level pixel buffer helper.
