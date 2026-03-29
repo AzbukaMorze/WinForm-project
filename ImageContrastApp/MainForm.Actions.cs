@@ -124,10 +124,10 @@ public sealed partial class MainForm
     {
         return cmbLocalProcessor.SelectedIndex switch
         {
-            0 => LocalFragmentProcessorKind.Identity,
-            1 => LocalFragmentProcessorKind.SimpleLocalContrast,
-            2 => LocalFragmentProcessorKind.FrequencyProportionalStretch,
-            _ => LocalFragmentProcessorKind.SimpleLocalContrast
+            0 => LocalFragmentProcessorKind.Method1,
+            1 => LocalFragmentProcessorKind.Method2,
+            2 => LocalFragmentProcessorKind.Method3,
+            _ => LocalFragmentProcessorKind.Method1
         };
     }
 
@@ -137,7 +137,8 @@ public sealed partial class MainForm
         {
             FragmentWidth = (int)numFragmentWidth.Value,
             FragmentHeight = (int)numFragmentHeight.Value,
-            ContrastFactor = (float)numContrastFactor.Value,
+            TargetStandardDeviation = (float)numContrastFactor.Value,
+            BlendQ = (float)numBlendQ.Value,
             UseMultithreading = chkUseMultithreading.Checked,
             MaxDegreeOfParallelism = Environment.ProcessorCount,
             ProcessorKind = GetSelectedLocalProcessorKind()
@@ -147,14 +148,17 @@ public sealed partial class MainForm
     private void UpdateParameterAvailability()
     {
         bool isLocalMode = GetSelectedProcessingMode() == ProcessingMode.LocalFragment;
-        lblContrast.Text = isLocalMode ? "k (Local):" : "k (Global):";
+        bool useBlendQ = isLocalMode && GetSelectedLocalProcessorKind() == LocalFragmentProcessorKind.Method3;
+        lblContrast.Text = isLocalMode ? "σz (Local):" : "σz (Global TV):";
 
         cmbLocalProcessor.Enabled = isLocalMode;
         numFragmentWidth.Enabled = isLocalMode;
         numFragmentHeight.Enabled = isLocalMode;
+        numBlendQ.Enabled = useBlendQ;
         chkUseMultithreading.Enabled = isLocalMode;
         lblLocalProcessor.Enabled = isLocalMode;
         lblFragmentWidth.Enabled = isLocalMode;
         lblFragmentHeight.Enabled = isLocalMode;
+        lblBlendQ.Enabled = useBlendQ;
     }
 }

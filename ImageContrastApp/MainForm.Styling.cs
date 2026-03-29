@@ -32,6 +32,7 @@ public sealed partial class MainForm
         lblLocalProcessor.ForeColor = textColor;
         lblFragmentWidth.ForeColor = textColor;
         lblFragmentHeight.ForeColor = textColor;
+        lblBlendQ.ForeColor = textColor;
         chkUseMultithreading.ForeColor = textColor;
         chkUseMultithreading.BackColor = panelBack;
 
@@ -40,6 +41,7 @@ public sealed partial class MainForm
         StyleNumericControl(numContrastFactor, inputBack, inputText);
         StyleNumericControl(numFragmentWidth, inputBack, inputText);
         StyleNumericControl(numFragmentHeight, inputBack, inputText);
+        StyleNumericControl(numBlendQ, inputBack, inputText);
 
         SetButtonBaseColor(btnLoadImage, Color.FromArgb(85, 130, 242));
         SetButtonBaseColor(btnApplyContrast, Color.FromArgb(36, 180, 142));

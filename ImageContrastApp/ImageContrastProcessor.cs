@@ -7,7 +7,7 @@ namespace ImageContrastApp;
 
 internal static class ImageContrastProcessor
 {
-    internal static Bitmap AdjustGlobalContrast(Bitmap image, float globalContrastK)
+    internal static Bitmap AdjustGlobalContrast(Bitmap image, float targetStandardDeviation)
     {
         Rectangle rect = new Rectangle(0, 0, image.Width, image.Height);
         using Bitmap source = image.Clone(rect, PixelFormat.Format32bppArgb);
@@ -29,11 +29,11 @@ internal static class ImageContrastProcessor
 
             byte[] sourceBuffer = new byte[sourceBytes];
             byte[] resultBuffer = new byte[resultBytes];
-            float[] luminanceValues = new float[source.Width * source.Height];
+            float[] brightnessValues = new float[source.Width * source.Height];
 
             Marshal.Copy(sourceData.Scan0, sourceBuffer, 0, sourceBytes);
 
-            double luminanceSum = 0d;
+            double brightnessSum = 0d;
             int pixelIndex = 0;
             for (int y = 0; y < source.Height; y++)
             {
@@ -44,18 +44,19 @@ internal static class ImageContrastProcessor
                 for (int x = 0; x < source.Width; x++)
                 {
                     int sIndex = sourceRow + (x * 4);
-                    float b = sourceBuffer[sIndex] / 255f;
-                    float g = sourceBuffer[sIndex + 1] / 255f;
-                    float r = sourceBuffer[sIndex + 2] / 255f;
-                    float luminance = (0.2126f * r) + (0.7152f * g) + (0.0722f * b);
+                    float brightness = GetBrightness(sourceBuffer[sIndex + 2], sourceBuffer[sIndex + 1], sourceBuffer[sIndex]);
 
-                    luminanceValues[pixelIndex] = luminance;
-                    luminanceSum += luminance;
+                    brightnessValues[pixelIndex] = brightness;
+                    brightnessSum += brightness;
                     pixelIndex++;
                 }
             }
 
-            float averageLuminance = (float)(luminanceSum / luminanceValues.Length);
+            float averageBrightness = (float)(brightnessSum / brightnessValues.Length);
+            float sourceStandardDeviation = ComputePopulationStandardDeviation(brightnessValues, averageBrightness);
+            float contrastCoefficient = sourceStandardDeviation > 0.0001f
+                ? (targetStandardDeviation / sourceStandardDeviation) - 1f
+                : 0f;
 
             pixelIndex = 0;
             for (int y = 0; y < source.Height; y++)
@@ -72,23 +73,16 @@ internal static class ImageContrastProcessor
                 {
                     int sIndex = sourceRow + (x * 4);
                     int dIndex = resultRow + (x * 4);
+                    float sourceBrightness = brightnessValues[pixelIndex];
 
-                    float b = sourceBuffer[sIndex] / 255f;
-                    float g = sourceBuffer[sIndex + 1] / 255f;
-                    float r = sourceBuffer[sIndex + 2] / 255f;
-                    float sourceLuminance = luminanceValues[pixelIndex];
+                    // Global television transform on grayscale brightness:
+                    // z = y + k * (y - y_bar), with k = sigma_z / sigma_y - 1
+                    float transformedBrightness = sourceBrightness + (contrastCoefficient * (sourceBrightness - averageBrightness));
+                    byte gray = ClampToByte(transformedBrightness);
 
-                    // Average-based global contrast: z = y + k * (y - y_avg)
-                    float targetLuminance = Clamp01(sourceLuminance + (globalContrastK * (sourceLuminance - averageLuminance)));
-                    float ratio = sourceLuminance > 0.0001f ? targetLuminance / sourceLuminance : 1f;
-
-                    float rOut = Clamp01(r * ratio);
-                    float gOut = Clamp01(g * ratio);
-                    float bOut = Clamp01(b * ratio);
-
-                    resultBuffer[dIndex] = (byte)(bOut * 255f);
-                    resultBuffer[dIndex + 1] = (byte)(gOut * 255f);
-                    resultBuffer[dIndex + 2] = (byte)(rOut * 255f);
+                    resultBuffer[dIndex] = gray;
+                    resultBuffer[dIndex + 1] = gray;
+                    resultBuffer[dIndex + 2] = gray;
                     resultBuffer[dIndex + 3] = sourceBuffer[sIndex + 3];
                     pixelIndex++;
                 }
@@ -112,18 +106,36 @@ internal static class ImageContrastProcessor
         return result;
     }
 
-    private static float Clamp01(float value)
+    private static float GetBrightness(byte r, byte g, byte b)
     {
-        if (value < 0f)
+        return (0.2126f * r) + (0.7152f * g) + (0.0722f * b);
+    }
+
+    private static float ComputePopulationStandardDeviation(float[] values, float mean)
+    {
+        double squaredDifferenceSum = 0d;
+
+        for (int i = 0; i < values.Length; i++)
         {
-            return 0f;
+            double difference = values[i] - mean;
+            squaredDifferenceSum += difference * difference;
         }
 
-        if (value > 1f)
+        return (float)Math.Sqrt(squaredDifferenceSum / values.Length);
+    }
+
+    private static byte ClampToByte(float value)
+    {
+        if (value <= 0f)
         {
-            return 1f;
+            return 0;
         }
 
-        return value;
+        if (value >= 255f)
+        {
+            return byte.MaxValue;
+        }
+
+        return (byte)Math.Round(value, MidpointRounding.AwayFromZero);
     }
 }

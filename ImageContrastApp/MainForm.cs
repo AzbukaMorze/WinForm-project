@@ -28,11 +28,13 @@ public sealed partial class MainForm : Form
     private readonly NumericUpDown numContrastFactor;
     private readonly NumericUpDown numFragmentWidth;
     private readonly NumericUpDown numFragmentHeight;
+    private readonly NumericUpDown numBlendQ;
     private readonly Label lblContrast;
     private readonly Label lblProcessingMode;
     private readonly Label lblLocalProcessor;
     private readonly Label lblFragmentWidth;
     private readonly Label lblFragmentHeight;
+    private readonly Label lblBlendQ;
     private readonly CheckBox chkUseMultithreading;
     private readonly PictureBox pictureBox;
     private readonly Dictionary<Button, Color> buttonBaseColors;
@@ -141,11 +143,11 @@ public sealed partial class MainForm : Form
 
         numContrastFactor = new NumericUpDown
         {
-            DecimalPlaces = 2,
-            Increment = 0.50m,
-            Minimum = -1.00m,
-            Maximum = 10.00m,
-            Value = 0.00m,
+            DecimalPlaces = 0,
+            Increment = 5.00m,
+            Minimum = 0.00m,
+            Maximum = 128.00m,
+            Value = 64.00m,
             Width = 80,
             Height = 30,
             Margin = new Padding(0, 8, 18, 0)
@@ -161,15 +163,16 @@ public sealed partial class MainForm : Form
         cmbLocalProcessor = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Width = 182,
+            Width = 132,
             Height = 30,
             Margin = new Padding(0, 7, 18, 0),
             FlatStyle = FlatStyle.Flat
         };
-        cmbLocalProcessor.Items.Add("Identity");
-        cmbLocalProcessor.Items.Add("Simple Local Contrast");
-        cmbLocalProcessor.Items.Add("Freq. Stretch (Later)");
-        cmbLocalProcessor.SelectedIndex = 1;
+        cmbLocalProcessor.Items.Add("Method 1");
+        cmbLocalProcessor.Items.Add("Method 2");
+        cmbLocalProcessor.Items.Add("Method 3");
+        cmbLocalProcessor.SelectedIndex = 0;
+        cmbLocalProcessor.SelectedIndexChanged += (_, _) => UpdateParameterAvailability();
 
         lblFragmentWidth = new Label
         {
@@ -209,6 +212,25 @@ public sealed partial class MainForm : Form
             Margin = new Padding(0, 8, 18, 0)
         };
 
+        lblBlendQ = new Label
+        {
+            Text = "q:",
+            AutoSize = true,
+            Margin = new Padding(0, 12, 8, 0)
+        };
+
+        numBlendQ = new NumericUpDown
+        {
+            DecimalPlaces = 2,
+            Increment = 0.10m,
+            Minimum = 0.00m,
+            Maximum = 1.00m,
+            Value = 0.50m,
+            Width = 62,
+            Height = 30,
+            Margin = new Padding(0, 8, 18, 0)
+        };
+
         chkUseMultithreading = new CheckBox
         {
             Text = "Multithread",
@@ -226,6 +248,8 @@ public sealed partial class MainForm : Form
         paramsRow.Controls.Add(numFragmentWidth);
         paramsRow.Controls.Add(lblFragmentHeight);
         paramsRow.Controls.Add(numFragmentHeight);
+        paramsRow.Controls.Add(lblBlendQ);
+        paramsRow.Controls.Add(numBlendQ);
         paramsRow.Controls.Add(chkUseMultithreading);
 
         topPanel.Controls.Add(paramsRow);

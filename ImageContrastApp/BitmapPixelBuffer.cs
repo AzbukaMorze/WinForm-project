@@ -113,17 +113,6 @@ internal sealed class BitmapPixelBuffer
         r = pixels[index + 2];
     }
 
-    internal byte GetAlpha(int x, int y)
-    {
-        return pixels[GetPixelIndex(x, y) + 3];
-    }
-
-    internal float GetLuminance(int x, int y)
-    {
-        GetRgb(x, y, out byte r, out byte g, out byte b);
-        return LuminanceHelper.FromRgbBytes(r, g, b);
-    }
-
     private int GetPixelIndex(int x, int y)
     {
         return ((y * Width) + x) * 4;

@@ -1,16 +1,14 @@
 using System;
 using System.Buffers;
-using System.Drawing;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace ImageContrastApp;
 
 internal enum LocalFragmentProcessorKind
 {
-    Identity,
-    SimpleLocalContrast,
-    FrequencyProportionalStretch
+    Method1,
+    Method2,
+    Method3
 }
 
 internal sealed class LocalFragmentSettings
@@ -19,51 +17,276 @@ internal sealed class LocalFragmentSettings
 
     internal int FragmentHeight { get; init; } = 9;
 
-    internal float ContrastFactor { get; init; } = 0.5f;
+    internal float TargetStandardDeviation { get; init; } = 64f;
+
+    internal float BlendQ { get; init; } = 0.5f;
 
     internal bool UseMultithreading { get; init; }
 
     internal int MaxDegreeOfParallelism { get; init; } = Environment.ProcessorCount;
 
-    internal LocalFragmentProcessorKind ProcessorKind { get; init; } = LocalFragmentProcessorKind.SimpleLocalContrast;
+    internal LocalFragmentProcessorKind ProcessorKind { get; init; } = LocalFragmentProcessorKind.Method1;
 }
 
 internal readonly record struct FragmentBounds(int X, int Y, int Width, int Height);
 
-internal readonly record struct FragmentProcessingContext(
-    BitmapPixelBuffer Source,
-    FragmentBounds Bounds,
-    LocalFragmentSettings Settings);
-
-internal interface IFragmentProcessor
+internal static class LocalFragmentEngine
 {
-    LocalFragmentProcessorKind Kind { get; }
-
-    void ProcessFragment(in FragmentProcessingContext context, Span<byte> destinationRgb);
-}
-
-internal static class LocalFragmentProcessorFactory
-{
-    internal static IFragmentProcessor Create(LocalFragmentProcessorKind kind)
+    internal static System.Drawing.Bitmap Process(System.Drawing.Bitmap image, LocalFragmentSettings settings)
     {
-        return kind switch
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(settings);
+
+        if (settings.FragmentWidth < 1 || settings.FragmentHeight < 1)
         {
-            LocalFragmentProcessorKind.Identity => new IdentityFragmentProcessor(),
-            LocalFragmentProcessorKind.SimpleLocalContrast => new SimpleLocalContrastProcessor(),
-            LocalFragmentProcessorKind.FrequencyProportionalStretch => new FrequencyProportionalStretchProcessor(),
-            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown local fragment processor.")
+            throw new ArgumentOutOfRangeException(nameof(settings), "Fragment dimensions must be positive.");
+        }
+
+        GrayImageBuffer source = GrayImageBuffer.FromBitmap(image);
+        byte[] result = new byte[source.Width * source.Height];
+        bool[] writtenMask = new bool[source.Width * source.Height];
+        float globalMean = LocalFragmentMath.ComputeMean(source.Brightness);
+        float globalStandardDeviation = LocalFragmentMath.ComputePopulationStandardDeviation(source.Brightness, globalMean);
+
+        if (settings.UseMultithreading)
+        {
+            ProcessParallel(source, settings, result, writtenMask, globalMean, globalStandardDeviation);
+        }
+        else
+        {
+            ProcessSequential(source, settings, result, writtenMask, globalMean, globalStandardDeviation);
+        }
+
+        return source.ToBitmap(result);
+    }
+
+    private static void ProcessSequential(
+        GrayImageBuffer source,
+        LocalFragmentSettings settings,
+        byte[] result,
+        bool[] writtenMask,
+        float globalMean,
+        float globalStandardDeviation)
+    {
+        for (int y = 0; y < source.Height; y++)
+        {
+            for (int x = 0; x < source.Width; x++)
+            {
+                FragmentBounds bounds = CreateBounds(source, settings, x, y);
+                byte[] fragment = ProcessFragment(source, bounds, settings, globalMean, globalStandardDeviation);
+                ApplySequentialOverlap(fragment, bounds, source.Width, result, writtenMask);
+            }
+        }
+    }
+
+    private static void ProcessParallel(
+        GrayImageBuffer source,
+        LocalFragmentSettings settings,
+        byte[] result,
+        bool[] writtenMask,
+        float globalMean,
+        float globalStandardDeviation)
+    {
+        ParallelOptions options = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = Math.Max(1, settings.MaxDegreeOfParallelism)
+        };
+
+        byte[][] rowFragments = new byte[source.Width][];
+
+        for (int y = 0; y < source.Height; y++)
+        {
+            int rowY = y;
+            Parallel.For(0, source.Width, options, x =>
+            {
+                FragmentBounds bounds = CreateBounds(source, settings, x, rowY);
+                rowFragments[x] = ProcessFragment(source, bounds, settings, globalMean, globalStandardDeviation);
+            });
+
+            for (int x = 0; x < source.Width; x++)
+            {
+                FragmentBounds bounds = CreateBounds(source, settings, x, y);
+                ApplySequentialOverlap(rowFragments[x], bounds, source.Width, result, writtenMask);
+            }
+        }
+    }
+
+    private static FragmentBounds CreateBounds(GrayImageBuffer source, LocalFragmentSettings settings, int x, int y)
+    {
+        return new FragmentBounds(
+            x,
+            y,
+            Math.Min(settings.FragmentWidth, source.Width - x),
+            Math.Min(settings.FragmentHeight, source.Height - y));
+    }
+
+    private static byte[] ProcessFragment(
+        GrayImageBuffer source,
+        FragmentBounds bounds,
+        LocalFragmentSettings settings,
+        float globalMean,
+        float globalStandardDeviation)
+    {
+        int pixelCount = bounds.Width * bounds.Height;
+        byte[] fragment = ArrayPool<byte>.Shared.Rent(pixelCount);
+        Span<byte> output = fragment.AsSpan(0, pixelCount);
+        float[] values = ArrayPool<float>.Shared.Rent(pixelCount);
+        Span<float> fragmentValues = values.AsSpan(0, pixelCount);
+
+        try
+        {
+            int index = 0;
+            float sum = 0f;
+
+            for (int localY = 0; localY < bounds.Height; localY++)
+            {
+                int sourceY = bounds.Y + localY;
+
+                for (int localX = 0; localX < bounds.Width; localX++)
+                {
+                    float value = source.GetBrightness(bounds.X + localX, sourceY);
+                    fragmentValues[index] = value;
+                    sum += value;
+                    index++;
+                }
+            }
+
+            float fragmentMean = sum / pixelCount;
+            float fragmentStandardDeviation = LocalFragmentMath.ComputePopulationStandardDeviation(fragmentValues, fragmentMean);
+            float? coefficient = ResolveCoefficient(settings, globalStandardDeviation, fragmentStandardDeviation);
+
+            if (coefficient is null)
+            {
+                for (int i = 0; i < pixelCount; i++)
+                {
+                    output[i] = LocalFragmentMath.RoundClamp(fragmentValues[i]);
+                }
+
+                return output.ToArray();
+            }
+
+            for (int i = 0; i < pixelCount; i++)
+            {
+                float sourceValue = fragmentValues[i];
+                float transformed = sourceValue + (coefficient.Value * (sourceValue - fragmentMean));
+                output[i] = LocalFragmentMath.RoundClamp(transformed);
+            }
+
+            return output.ToArray();
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(fragment);
+            ArrayPool<float>.Shared.Return(values);
+        }
+    }
+
+    private static float? ResolveCoefficient(
+        LocalFragmentSettings settings,
+        float globalStandardDeviation,
+        float fragmentStandardDeviation)
+    {
+        if (globalStandardDeviation <= LocalFragmentMath.Epsilon)
+        {
+            return 0f;
+        }
+
+        return settings.ProcessorKind switch
+        {
+            LocalFragmentProcessorKind.Method1 => (settings.TargetStandardDeviation / globalStandardDeviation) - 1f,
+            LocalFragmentProcessorKind.Method2 => fragmentStandardDeviation <= LocalFragmentMath.Epsilon
+                ? null
+                : (settings.TargetStandardDeviation / fragmentStandardDeviation) - 1f,
+            LocalFragmentProcessorKind.Method3 => fragmentStandardDeviation <= LocalFragmentMath.Epsilon
+                ? null
+                : ((settings.TargetStandardDeviation / fragmentStandardDeviation)
+                    * MathF.Pow(fragmentStandardDeviation / globalStandardDeviation, 1f - settings.BlendQ)) - 1f,
+            _ => throw new ArgumentOutOfRangeException(nameof(settings.ProcessorKind), settings.ProcessorKind, "Unknown local fragment method.")
         };
     }
+
+    private static void ApplySequentialOverlap(
+        ReadOnlySpan<byte> fragment,
+        FragmentBounds bounds,
+        int imageWidth,
+        byte[] result,
+        bool[] writtenMask)
+    {
+        int index = 0;
+
+        for (int localY = 0; localY < bounds.Height; localY++)
+        {
+            int targetY = bounds.Y + localY;
+
+            for (int localX = 0; localX < bounds.Width; localX++)
+            {
+                int pixelIndex = (targetY * imageWidth) + bounds.X + localX;
+                byte newValue = fragment[index];
+
+                if (!writtenMask[pixelIndex])
+                {
+                    result[pixelIndex] = newValue;
+                    writtenMask[pixelIndex] = true;
+                }
+                else
+                {
+                    result[pixelIndex] = LocalFragmentMath.RoundClamp((result[pixelIndex] + newValue) / 2f);
+                }
+
+                index++;
+            }
+        }
+    }
 }
 
-internal static class LuminanceHelper
+internal static class LocalFragmentMath
 {
-    internal static float FromRgbBytes(byte r, byte g, byte b)
+    internal const float Epsilon = 0.0001f;
+
+    internal static byte ToByteBrightness(byte r, byte g, byte b)
     {
-        return ((0.2126f * r) + (0.7152f * g) + (0.0722f * b)) / 255f;
+        return RoundClamp((0.2126f * r) + (0.7152f * g) + (0.0722f * b));
     }
 
-    internal static byte ClampToByte(float value)
+    internal static float ComputeMean(ReadOnlySpan<byte> values)
+    {
+        double sum = 0d;
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            sum += values[i];
+        }
+
+        return (float)(sum / values.Length);
+    }
+
+    internal static float ComputePopulationStandardDeviation(ReadOnlySpan<byte> values, float mean)
+    {
+        double squaredDifferenceSum = 0d;
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            double difference = values[i] - mean;
+            squaredDifferenceSum += difference * difference;
+        }
+
+        return (float)Math.Sqrt(squaredDifferenceSum / values.Length);
+    }
+
+    internal static float ComputePopulationStandardDeviation(ReadOnlySpan<float> values, float mean)
+    {
+        double squaredDifferenceSum = 0d;
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            double difference = values[i] - mean;
+            squaredDifferenceSum += difference * difference;
+        }
+
+        return (float)Math.Sqrt(squaredDifferenceSum / values.Length);
+    }
+
+    internal static byte RoundClamp(float value)
     {
         if (value <= 0f)
         {
@@ -75,208 +298,6 @@ internal static class LuminanceHelper
             return byte.MaxValue;
         }
 
-        return (byte)MathF.Round(value);
-    }
-
-    internal static float Clamp01(float value)
-    {
-        if (value < 0f)
-        {
-            return 0f;
-        }
-
-        if (value > 1f)
-        {
-            return 1f;
-        }
-
-        return value;
-    }
-}
-
-internal static class LocalFragmentEngine
-{
-    internal static Bitmap Process(Bitmap image, LocalFragmentSettings settings)
-    {
-        ArgumentNullException.ThrowIfNull(image);
-        ArgumentNullException.ThrowIfNull(settings);
-
-        if (settings.FragmentWidth < 1 || settings.FragmentHeight < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(settings), "Fragment dimensions must be positive.");
-        }
-
-        BitmapPixelBuffer source = BitmapPixelBuffer.FromBitmap(image);
-        IFragmentProcessor processor = LocalFragmentProcessorFactory.Create(settings.ProcessorKind);
-
-        long[] sumR = new long[source.Width * source.Height];
-        long[] sumG = new long[source.Width * source.Height];
-        long[] sumB = new long[source.Width * source.Height];
-        int[] counts = new int[source.Width * source.Height];
-
-        if (settings.UseMultithreading)
-        {
-            ProcessParallel(source, settings, processor, sumR, sumG, sumB, counts);
-        }
-        else
-        {
-            ProcessSequential(source, settings, processor, sumR, sumG, sumB, counts);
-        }
-
-        byte[] normalizedRgb = Normalize(source, sumR, sumG, sumB, counts);
-        return source.ToBitmap(normalizedRgb);
-    }
-
-    private static void ProcessSequential(
-        BitmapPixelBuffer source,
-        LocalFragmentSettings settings,
-        IFragmentProcessor processor,
-        long[] sumR,
-        long[] sumG,
-        long[] sumB,
-        int[] counts)
-    {
-        for (int y = 0; y < source.Height; y++)
-        {
-            ProcessFragmentRow(source, settings, processor, y, sumR, sumG, sumB, counts, useInterlocked: false);
-        }
-    }
-
-    private static void ProcessParallel(
-        BitmapPixelBuffer source,
-        LocalFragmentSettings settings,
-        IFragmentProcessor processor,
-        long[] sumR,
-        long[] sumG,
-        long[] sumB,
-        int[] counts)
-    {
-        ParallelOptions options = new ParallelOptions
-        {
-            MaxDegreeOfParallelism = Math.Max(1, settings.MaxDegreeOfParallelism)
-        };
-
-        Parallel.For(0, source.Height, options, y =>
-        {
-            ProcessFragmentRow(source, settings, processor, y, sumR, sumG, sumB, counts, useInterlocked: true);
-        });
-    }
-
-    private static void ProcessFragmentRow(
-        BitmapPixelBuffer source,
-        LocalFragmentSettings settings,
-        IFragmentProcessor processor,
-        int fragmentY,
-        long[] sumR,
-        long[] sumG,
-        long[] sumB,
-        int[] counts,
-        bool useInterlocked)
-    {
-        for (int fragmentX = 0; fragmentX < source.Width; fragmentX++)
-        {
-            FragmentBounds bounds = new FragmentBounds(
-                fragmentX,
-                fragmentY,
-                Math.Min(settings.FragmentWidth, source.Width - fragmentX),
-                Math.Min(settings.FragmentHeight, source.Height - fragmentY));
-
-            int fragmentPixelCount = bounds.Width * bounds.Height;
-            byte[] rented = ArrayPool<byte>.Shared.Rent(fragmentPixelCount * 3);
-
-            try
-            {
-                Span<byte> output = rented.AsSpan(0, fragmentPixelCount * 3);
-                FragmentProcessingContext context = new FragmentProcessingContext(source, bounds, settings);
-                processor.ProcessFragment(context, output);
-                AccumulateFragment(bounds, output, source.Width, sumR, sumG, sumB, counts, useInterlocked);
-            }
-            finally
-            {
-                ArrayPool<byte>.Shared.Return(rented);
-            }
-        }
-    }
-
-    private static void AccumulateFragment(
-        FragmentBounds bounds,
-        ReadOnlySpan<byte> fragmentRgb,
-        int imageWidth,
-        long[] sumR,
-        long[] sumG,
-        long[] sumB,
-        int[] counts,
-        bool useInterlocked)
-    {
-        int rgbIndex = 0;
-
-        for (int localY = 0; localY < bounds.Height; localY++)
-        {
-            int targetY = bounds.Y + localY;
-
-            for (int localX = 0; localX < bounds.Width; localX++)
-            {
-                int targetX = bounds.X + localX;
-                int pixelIndex = (targetY * imageWidth) + targetX;
-                byte r = fragmentRgb[rgbIndex];
-                byte g = fragmentRgb[rgbIndex + 1];
-                byte b = fragmentRgb[rgbIndex + 2];
-
-                if (useInterlocked)
-                {
-                    Interlocked.Add(ref sumR[pixelIndex], r);
-                    Interlocked.Add(ref sumG[pixelIndex], g);
-                    Interlocked.Add(ref sumB[pixelIndex], b);
-                    Interlocked.Increment(ref counts[pixelIndex]);
-                }
-                else
-                {
-                    sumR[pixelIndex] += r;
-                    sumG[pixelIndex] += g;
-                    sumB[pixelIndex] += b;
-                    counts[pixelIndex]++;
-                }
-
-                rgbIndex += 3;
-            }
-        }
-    }
-
-    private static byte[] Normalize(
-        BitmapPixelBuffer source,
-        long[] sumR,
-        long[] sumG,
-        long[] sumB,
-        int[] counts)
-    {
-        byte[] normalizedRgb = new byte[source.Width * source.Height * 3];
-        int rgbIndex = 0;
-
-        for (int y = 0; y < source.Height; y++)
-        {
-            for (int x = 0; x < source.Width; x++)
-            {
-                int pixelIndex = (y * source.Width) + x;
-                int count = counts[pixelIndex];
-
-                if (count <= 0)
-                {
-                    source.GetRgb(x, y, out byte sourceR, out byte sourceG, out byte sourceB);
-                    normalizedRgb[rgbIndex] = sourceR;
-                    normalizedRgb[rgbIndex + 1] = sourceG;
-                    normalizedRgb[rgbIndex + 2] = sourceB;
-                }
-                else
-                {
-                    normalizedRgb[rgbIndex] = LuminanceHelper.ClampToByte((float)sumR[pixelIndex] / count);
-                    normalizedRgb[rgbIndex + 1] = LuminanceHelper.ClampToByte((float)sumG[pixelIndex] / count);
-                    normalizedRgb[rgbIndex + 2] = LuminanceHelper.ClampToByte((float)sumB[pixelIndex] / count);
-                }
-
-                rgbIndex += 3;
-            }
-        }
-
-        return normalizedRgb;
+        return (byte)Math.Round(value, MidpointRounding.AwayFromZero);
     }
 }
