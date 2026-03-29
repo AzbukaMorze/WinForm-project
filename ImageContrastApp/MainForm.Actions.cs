@@ -138,7 +138,6 @@ public sealed partial class MainForm
             FragmentWidth = (int)numFragmentWidth.Value,
             FragmentHeight = (int)numFragmentHeight.Value,
             TargetStandardDeviation = (float)numContrastFactor.Value,
-            BlendQ = (float)numBlendQ.Value,
             UseMultithreading = chkUseMultithreading.Checked,
             MaxDegreeOfParallelism = Environment.ProcessorCount,
             ProcessorKind = GetSelectedLocalProcessorKind()
@@ -148,17 +147,18 @@ public sealed partial class MainForm
     private void UpdateParameterAvailability()
     {
         bool isLocalMode = GetSelectedProcessingMode() == ProcessingMode.LocalFragment;
-        bool useBlendQ = isLocalMode && GetSelectedLocalProcessorKind() == LocalFragmentProcessorKind.Method3;
+        bool showAdaptiveQ = isLocalMode && GetSelectedLocalProcessorKind() == LocalFragmentProcessorKind.Method3;
         lblContrast.Text = isLocalMode ? "σz (Local):" : "σz (Global TV):";
+        lblBlendQ.Text = "q = clamp(1 - σ/80):";
 
         cmbLocalProcessor.Enabled = isLocalMode;
         numFragmentWidth.Enabled = isLocalMode;
         numFragmentHeight.Enabled = isLocalMode;
-        numBlendQ.Enabled = useBlendQ;
+        numBlendQ.Visible = false;
         chkUseMultithreading.Enabled = isLocalMode;
         lblLocalProcessor.Enabled = isLocalMode;
         lblFragmentWidth.Enabled = isLocalMode;
         lblFragmentHeight.Enabled = isLocalMode;
-        lblBlendQ.Enabled = useBlendQ;
+        lblBlendQ.Visible = showAdaptiveQ;
     }
 }
