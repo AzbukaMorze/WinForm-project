@@ -44,9 +44,21 @@ public sealed partial class MainForm
             return;
         }
 
-        float globalContrastK = (float)numContrastFactor.Value;
-        Bitmap adjusted = ImageContrastProcessor.AdjustGlobalContrast(originalImage, globalContrastK);
-        SetDisplayedImage(adjusted);
+        try
+        {
+            Bitmap adjusted = GetSelectedProcessingMode() switch
+            {
+                ProcessingMode.GlobalContrast => ImageContrastProcessor.AdjustGlobalContrast(originalImage, (float)numContrastFactor.Value),
+                ProcessingMode.LocalFragment => LocalFragmentEngine.Process(originalImage, BuildLocalFragmentSettings()),
+                _ => throw new InvalidOperationException("Unknown processing mode.")
+            };
+
+            SetDisplayedImage(adjusted);
+        }
+        catch (NotImplementedException ex)
+        {
+            MessageBox.Show(ex.Message, "Not available", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
     }
 
     private void btnSaveImage_Click(object? sender, EventArgs e)
@@ -99,5 +111,50 @@ public sealed partial class MainForm
             ".bmp" => ImageFormat.Bmp,
             _ => ImageFormat.Png
         };
+    }
+
+    private ProcessingMode GetSelectedProcessingMode()
+    {
+        return cmbProcessingMode.SelectedIndex == 1
+            ? ProcessingMode.LocalFragment
+            : ProcessingMode.GlobalContrast;
+    }
+
+    private LocalFragmentProcessorKind GetSelectedLocalProcessorKind()
+    {
+        return cmbLocalProcessor.SelectedIndex switch
+        {
+            0 => LocalFragmentProcessorKind.Identity,
+            1 => LocalFragmentProcessorKind.SimpleLocalContrast,
+            2 => LocalFragmentProcessorKind.FrequencyProportionalStretch,
+            _ => LocalFragmentProcessorKind.SimpleLocalContrast
+        };
+    }
+
+    private LocalFragmentSettings BuildLocalFragmentSettings()
+    {
+        return new LocalFragmentSettings
+        {
+            FragmentWidth = (int)numFragmentWidth.Value,
+            FragmentHeight = (int)numFragmentHeight.Value,
+            ContrastFactor = (float)numContrastFactor.Value,
+            UseMultithreading = chkUseMultithreading.Checked,
+            MaxDegreeOfParallelism = Environment.ProcessorCount,
+            ProcessorKind = GetSelectedLocalProcessorKind()
+        };
+    }
+
+    private void UpdateParameterAvailability()
+    {
+        bool isLocalMode = GetSelectedProcessingMode() == ProcessingMode.LocalFragment;
+        lblContrast.Text = isLocalMode ? "k (Local):" : "k (Global):";
+
+        cmbLocalProcessor.Enabled = isLocalMode;
+        numFragmentWidth.Enabled = isLocalMode;
+        numFragmentHeight.Enabled = isLocalMode;
+        chkUseMultithreading.Enabled = isLocalMode;
+        lblLocalProcessor.Enabled = isLocalMode;
+        lblFragmentWidth.Enabled = isLocalMode;
+        lblFragmentHeight.Enabled = isLocalMode;
     }
 }

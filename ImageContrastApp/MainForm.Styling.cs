@@ -7,26 +7,18 @@ namespace ImageContrastApp;
 
 public sealed partial class MainForm
 {
-    private enum UiTheme
-    {
-        Light,
-        Dark
-    }
-
     private const int CornerRadius = 12;
 
-    private void ApplyTheme(UiTheme theme)
+    private void ApplyTheme()
     {
-        bool isDark = theme == UiTheme.Dark;
-
-        Color formBack = isDark ? Color.FromArgb(27, 32, 40) : Color.FromArgb(236, 240, 246);
-        Color panelBack = isDark ? Color.FromArgb(33, 39, 48) : Color.FromArgb(248, 250, 252);
-        Color dividerBack = isDark ? Color.FromArgb(60, 69, 83) : Color.FromArgb(218, 224, 232);
-        Color canvasBack = isDark ? Color.FromArgb(27, 32, 40) : Color.FromArgb(236, 240, 246);
-        Color frameBack = isDark ? Color.FromArgb(42, 48, 58) : Color.FromArgb(249, 251, 253);
-        Color textColor = isDark ? Color.FromArgb(224, 230, 238) : Color.FromArgb(58, 70, 84);
-        Color inputBack = isDark ? Color.FromArgb(48, 56, 67) : Color.White;
-        Color inputText = isDark ? Color.FromArgb(232, 237, 243) : Color.FromArgb(33, 43, 54);
+        Color formBack = Color.FromArgb(27, 32, 40);
+        Color panelBack = Color.FromArgb(33, 39, 48);
+        Color dividerBack = Color.FromArgb(60, 69, 83);
+        Color canvasBack = Color.FromArgb(27, 32, 40);
+        Color frameBack = Color.FromArgb(42, 48, 58);
+        Color textColor = Color.FromArgb(224, 230, 238);
+        Color inputBack = Color.FromArgb(48, 56, 67);
+        Color inputText = Color.FromArgb(232, 237, 243);
 
         BackColor = formBack;
         topPanel.BackColor = panelBack;
@@ -35,15 +27,23 @@ public sealed partial class MainForm
         imageFrame.BackColor = frameBack;
         pictureBox.BackColor = frameBack;
 
-        lblTheme.ForeColor = textColor;
+        lblProcessingMode.ForeColor = textColor;
         lblContrast.ForeColor = textColor;
+        lblLocalProcessor.ForeColor = textColor;
+        lblFragmentWidth.ForeColor = textColor;
+        lblFragmentHeight.ForeColor = textColor;
+        chkUseMultithreading.ForeColor = textColor;
+        chkUseMultithreading.BackColor = panelBack;
 
-        StyleComboControl(cmbTheme, inputBack, inputText);
+        StyleComboControl(cmbProcessingMode, inputBack, inputText);
+        StyleComboControl(cmbLocalProcessor, inputBack, inputText);
         StyleNumericControl(numContrastFactor, inputBack, inputText);
+        StyleNumericControl(numFragmentWidth, inputBack, inputText);
+        StyleNumericControl(numFragmentHeight, inputBack, inputText);
 
-        SetButtonBaseColor(btnLoadImage, isDark ? Color.FromArgb(85, 130, 242) : Color.FromArgb(62, 110, 241));
-        SetButtonBaseColor(btnApplyContrast, isDark ? Color.FromArgb(36, 180, 142) : Color.FromArgb(28, 157, 124));
-        SetButtonBaseColor(btnSaveImage, isDark ? Color.FromArgb(118, 130, 145) : Color.FromArgb(90, 103, 120));
+        SetButtonBaseColor(btnLoadImage, Color.FromArgb(85, 130, 242));
+        SetButtonBaseColor(btnApplyContrast, Color.FromArgb(36, 180, 142));
+        SetButtonBaseColor(btnSaveImage, Color.FromArgb(118, 130, 145));
     }
 
     private void UpdateImageViewportBounds()

@@ -7,6 +7,12 @@ namespace ImageContrastApp;
 
 public sealed partial class MainForm : Form
 {
+    private enum ProcessingMode
+    {
+        GlobalContrast,
+        LocalFragment
+    }
+
     private readonly Panel topPanel;
     private readonly Panel topDivider;
     private readonly FlowLayoutPanel actionRow;
@@ -17,10 +23,17 @@ public sealed partial class MainForm : Form
     private readonly Button btnLoadImage;
     private readonly Button btnApplyContrast;
     private readonly Button btnSaveImage;
-    private readonly ComboBox cmbTheme;
+    private readonly ComboBox cmbProcessingMode;
+    private readonly ComboBox cmbLocalProcessor;
     private readonly NumericUpDown numContrastFactor;
+    private readonly NumericUpDown numFragmentWidth;
+    private readonly NumericUpDown numFragmentHeight;
     private readonly Label lblContrast;
-    private readonly Label lblTheme;
+    private readonly Label lblProcessingMode;
+    private readonly Label lblLocalProcessor;
+    private readonly Label lblFragmentWidth;
+    private readonly Label lblFragmentHeight;
+    private readonly CheckBox chkUseMultithreading;
     private readonly PictureBox pictureBox;
     private readonly Dictionary<Button, Color> buttonBaseColors;
 
@@ -38,7 +51,7 @@ public sealed partial class MainForm : Form
         topPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 128,
+            Height = 172,
             Padding = new Padding(14)
         };
 
@@ -69,7 +82,7 @@ public sealed partial class MainForm : Form
 
         btnApplyContrast = new Button
         {
-            Text = "Apply Contrast",
+            Text = "Apply",
             Width = 148,
             Height = 34,
             Margin = new Padding(0, 0, 10, 0)
@@ -85,31 +98,9 @@ public sealed partial class MainForm : Form
         };
         btnSaveImage.Click += btnSaveImage_Click;
 
-        lblTheme = new Label
-        {
-            Text = "Theme:",
-            AutoSize = true,
-            Margin = new Padding(0, 9, 8, 0)
-        };
-
-        cmbTheme = new ComboBox
-        {
-            DropDownStyle = ComboBoxStyle.DropDownList,
-            Width = 110,
-            Height = 34,
-            Margin = new Padding(0, 4, 0, 0),
-            FlatStyle = FlatStyle.Flat
-        };
-        cmbTheme.Items.Add("Light");
-        cmbTheme.Items.Add("Dark");
-        cmbTheme.SelectedIndex = 0;
-        cmbTheme.SelectedIndexChanged += (_, _) => ApplyTheme((UiTheme)cmbTheme.SelectedIndex);
-
         actionRow.Controls.Add(btnLoadImage);
         actionRow.Controls.Add(btnApplyContrast);
         actionRow.Controls.Add(btnSaveImage);
-        actionRow.Controls.Add(lblTheme);
-        actionRow.Controls.Add(cmbTheme);
 
         paramsRow = new FlowLayoutPanel
         {
@@ -121,9 +112,29 @@ public sealed partial class MainForm : Form
             Margin = new Padding(0, 8, 0, 0)
         };
 
+        lblProcessingMode = new Label
+        {
+            Text = "Mode:",
+            AutoSize = true,
+            Margin = new Padding(0, 12, 8, 0)
+        };
+
+        cmbProcessingMode = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Width = 150,
+            Height = 30,
+            Margin = new Padding(0, 7, 18, 0),
+            FlatStyle = FlatStyle.Flat
+        };
+        cmbProcessingMode.Items.Add("Global Contrast");
+        cmbProcessingMode.Items.Add("Local Fragment");
+        cmbProcessingMode.SelectedIndex = 0;
+        cmbProcessingMode.SelectedIndexChanged += (_, _) => UpdateParameterAvailability();
+
         lblContrast = new Label
         {
-            Text = "k (Global CC):",
+            Text = "k:",
             AutoSize = true,
             Margin = new Padding(0, 12, 8, 0)
         };
@@ -131,17 +142,91 @@ public sealed partial class MainForm : Form
         numContrastFactor = new NumericUpDown
         {
             DecimalPlaces = 2,
-            Increment = 0.10m,
-            Minimum = -0.99m,
-            Maximum = 3.00m,
-            Value = 0.20m,
+            Increment = 0.50m,
+            Minimum = -1.00m,
+            Maximum = 10.00m,
+            Value = 0.00m,
             Width = 80,
             Height = 30,
             Margin = new Padding(0, 8, 18, 0)
         };
 
+        lblLocalProcessor = new Label
+        {
+            Text = "Local:",
+            AutoSize = true,
+            Margin = new Padding(0, 12, 8, 0)
+        };
+
+        cmbLocalProcessor = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Width = 182,
+            Height = 30,
+            Margin = new Padding(0, 7, 18, 0),
+            FlatStyle = FlatStyle.Flat
+        };
+        cmbLocalProcessor.Items.Add("Identity");
+        cmbLocalProcessor.Items.Add("Simple Local Contrast");
+        cmbLocalProcessor.Items.Add("Freq. Stretch (Later)");
+        cmbLocalProcessor.SelectedIndex = 1;
+
+        lblFragmentWidth = new Label
+        {
+            Text = "Frag W:",
+            AutoSize = true,
+            Margin = new Padding(0, 12, 8, 0)
+        };
+
+        numFragmentWidth = new NumericUpDown
+        {
+            DecimalPlaces = 0,
+            Increment = 2m,
+            Minimum = 1m,
+            Maximum = 128m,
+            Value = 9m,
+            Width = 64,
+            Height = 30,
+            Margin = new Padding(0, 8, 18, 0)
+        };
+
+        lblFragmentHeight = new Label
+        {
+            Text = "Frag H:",
+            AutoSize = true,
+            Margin = new Padding(0, 12, 8, 0)
+        };
+
+        numFragmentHeight = new NumericUpDown
+        {
+            DecimalPlaces = 0,
+            Increment = 2m,
+            Minimum = 1m,
+            Maximum = 128m,
+            Value = 9m,
+            Width = 64,
+            Height = 30,
+            Margin = new Padding(0, 8, 18, 0)
+        };
+
+        chkUseMultithreading = new CheckBox
+        {
+            Text = "Multithread",
+            AutoSize = true,
+            Margin = new Padding(0, 11, 0, 0)
+        };
+
+        paramsRow.Controls.Add(lblProcessingMode);
+        paramsRow.Controls.Add(cmbProcessingMode);
         paramsRow.Controls.Add(lblContrast);
         paramsRow.Controls.Add(numContrastFactor);
+        paramsRow.Controls.Add(lblLocalProcessor);
+        paramsRow.Controls.Add(cmbLocalProcessor);
+        paramsRow.Controls.Add(lblFragmentWidth);
+        paramsRow.Controls.Add(numFragmentWidth);
+        paramsRow.Controls.Add(lblFragmentHeight);
+        paramsRow.Controls.Add(numFragmentHeight);
+        paramsRow.Controls.Add(chkUseMultithreading);
 
         topPanel.Controls.Add(paramsRow);
         topPanel.Controls.Add(actionRow);
@@ -177,6 +262,7 @@ public sealed partial class MainForm : Form
 
         UpdateImageViewportBounds();
         ApplyRoundedCorners(imageFrame, 16);
-        ApplyTheme(UiTheme.Light);
+        ApplyTheme();
+        UpdateParameterAvailability();
     }
 }
