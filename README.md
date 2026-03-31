@@ -67,19 +67,13 @@ k_frag = sigma_gl_z / sigma_frag_y - 1
 If `sigma_frag_y = 0`, the fragment is copied unchanged.
 
 ### Method 3
-Uses the generalized coefficient:
+Uses the generalized coefficient with user-controlled `q`:
 
 ```text
 k_frag = (sigma_gl_z / sigma_frag_y) * (sigma_frag_y / sigma_gl_y)^(1 - q) - 1
 ```
 
-This branch uses adaptive `q`:
-
-```text
-q = clamp(1 - sigma_gl_y / 80, 0, 1)
-```
-
-So lower-contrast images receive stronger local adaptation automatically.
+In this branch, `q` is set manually in the UI.
 
 ## UI Features
 - fixed dark UI style;
