@@ -1,56 +1,69 @@
-﻿# ImageContrastApp
+# ImageContrastApp
 
 Windows Forms application for:
 - loading an image;
-- applying average-based global contrast correction;
+- applying luminance-based contrast enhancement;
 - saving the processed result.
 
-## What stays on `main`
-- Modernized WinForms styling from the feature work: centered image card, rounded buttons, light/dark theme, cleaner top toolbar.
-- Split file structure for maintainability.
-- One algorithm only: global contrast change relative to the average luminance of the whole image.
+## Current Branch
+This `luminance` branch contains the color-preserving luminance version of the app.
 
-## What is intentionally removed from `main`
-- `Local TV` mode.
-- Local window parameters, presets, and fragment-based controls.
-- Any previous midpoint-based contrast logic around `0.5`.
+Implemented modes:
+- global contrast based on average image luminance;
+- local fragment processing for color images with pluggable local processors.
 
-`Local TV` will be rewritten later from scientific sources as a separate, cleaner implementation.
+Images remain color after processing. Contrast is computed from luminance, then mapped back to RGB to preserve color relationships.
 
-## Global Contrast Algorithm
-Formula:
+## Processing Model
+The branch uses luminance as the working brightness value:
+
 ```text
-z = y + k * (y - y_avg)
+y = 0.2126R + 0.7152G + 0.0722B
+```
+
+The core contrast formulas operate on `y`, while the final result is reconstructed into RGB output.
+
+## Global Contrast
+The global mode applies:
+
+```text
+z = y + k(y - y_avg)
 ```
 
 Where:
-- `y` is the luminance of the current pixel.
-- `z` is the new luminance after contrast correction.
-- `y_avg` is the average luminance of the full image.
+- `y` is the source pixel luminance;
+- `z` is the target luminance;
+- `y_avg` is the average luminance of the whole image;
 - `k` is the user-controlled global contrast coefficient.
 
-Interpretation:
-- `k = 0` keeps the image unchanged.
-- `k > 0` increases contrast.
-- `-1 < k < 0` decreases contrast.
+The luminance change is transferred back to RGB using a luminance ratio, so the image stays color instead of becoming grayscale.
 
-Implementation notes:
-- Pixel processing uses `LockBits` + `Marshal.Copy` for performance.
-- Contrast is applied in the luminance domain.
-- RGB color is reconstructed via luminance ratio scaling to preserve hue better than per-channel stretching.
+## Local Fragment Mode
+The local mode scans overlapping rectangular fragments across the image and applies a selected fragment processor.
+
+Current local processor options:
+- `Identity`
+- `Simple Local Contrast`
+- `Freq. Stretch (Later)` placeholder
+
+This branch uses a reusable local fragment engine with:
+- 1-pixel horizontal stride;
+- 1-pixel vertical stride;
+- cropped fragment bounds near image edges;
+- overlap composition through equal-weight accumulation and normalization;
+- optional multithreaded processing.
 
 ## UI Features
-- `Load`, `Apply Contrast`, `Save` action buttons.
-- Light and dark theme selector.
-- Image viewport centered with padding and roughly 90% fill of the available canvas.
-- Rounded controls and modernized neutral palette.
+- fixed dark UI style;
+- `Load`, `Apply`, `Save` buttons;
+- mode selector: `Global Contrast` / `Local Fragment`;
+- `k` control shared by global and local modes;
+- local processor selector;
+- fragment width and height controls;
+- optional multithread toggle;
+- centered image viewport with rounded controls.
 
-## Run (Visual Studio)
-1. Open `WinForm project.sln` or `ImageContrastApp/ImageContrastApp.csproj`.
-2. Restore packages if prompted.
-3. Start with `F5`.
-
-## Run (CLI)
+## Run
 ```powershell
 dotnet build .\ImageContrastApp\ImageContrastApp.csproj
 dotnet run --project .\ImageContrastApp\ImageContrastApp.csproj
@@ -59,12 +72,12 @@ dotnet run --project .\ImageContrastApp\ImageContrastApp.csproj
 ## Requirements
 - .NET SDK `10.0+`
 - Runtime `Microsoft.WindowsDesktop.App` `10.0+`
-- Optional: Visual Studio with `.NET Desktop Development`
 
 ## Structure
 - `ImageContrastApp/Program.cs` - entry point.
-- `ImageContrastApp/MainForm.cs` - form layout and control initialization.
-- `ImageContrastApp/MainForm.Actions.cs` - form actions, image loading, saving, disposal.
-- `ImageContrastApp/MainForm.Styling.cs` - theme, rounded controls, and layout styling helpers.
-- `ImageContrastApp/ImageContrastProcessor.cs` - average-based global contrast algorithm.
-- `.vscode/launch.json`, `.vscode/tasks.json` - VS Code run/build config.
+- `ImageContrastApp/MainForm.cs` - form layout and controls.
+- `ImageContrastApp/MainForm.Actions.cs` - form actions and mode handling.
+- `ImageContrastApp/MainForm.Styling.cs` - fixed dark styling helpers.
+- `ImageContrastApp/ImageContrastProcessor.cs` - global luminance-based contrast algorithm.
+- `ImageContrastApp/LocalFragmentProcessing.cs` - local fragment engine and processor plumbing.
+- `ImageContrastApp/BitmapPixelBuffer.cs` - low-level pixel buffer helper.
