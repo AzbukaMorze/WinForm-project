@@ -7,7 +7,7 @@ namespace ImageContrastApp;
 
 internal static class ImageContrastProcessor
 {
-    internal static Bitmap AdjustGlobalContrast(Bitmap image, float targetStandardDeviation)
+    internal static Bitmap AdjustGlobalContrast(Bitmap image)
     {
         Rectangle rect = new Rectangle(0, 0, image.Width, image.Height);
         using Bitmap source = image.Clone(rect, PixelFormat.Format32bppArgb);
@@ -54,6 +54,7 @@ internal static class ImageContrastProcessor
 
             float averageBrightness = (float)(brightnessSum / brightnessValues.Length);
             float sourceStandardDeviation = ComputePopulationStandardDeviation(brightnessValues, averageBrightness);
+            float targetStandardDeviation = ComputeAdaptiveTargetStandardDeviation(sourceStandardDeviation);
             float contrastCoefficient = sourceStandardDeviation > 0.0001f
                 ? (targetStandardDeviation / sourceStandardDeviation) - 1f
                 : 0f;
@@ -122,6 +123,12 @@ internal static class ImageContrastProcessor
         }
 
         return (float)Math.Sqrt(squaredDifferenceSum / values.Length);
+    }
+
+    private static float ComputeAdaptiveTargetStandardDeviation(float sourceStandardDeviation)
+    {
+        float target = sourceStandardDeviation + (0.5f * (80f - sourceStandardDeviation));
+        return Math.Clamp(target, 0f, 128f);
     }
 
     private static byte ClampToByte(float value)

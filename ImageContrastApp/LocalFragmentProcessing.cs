@@ -14,12 +14,12 @@ internal enum LocalFragmentProcessorKind
 internal sealed class LocalFragmentSettings
 {
     internal const float AdaptiveQReferenceDeviation = 80f;
+    internal const float AdaptiveSigmaReferenceDeviation = 80f;
+    internal const float AdaptiveSigmaBlend = 0.5f;
 
     internal int FragmentWidth { get; init; } = 9;
 
     internal int FragmentHeight { get; init; } = 9;
-
-    internal float TargetStandardDeviation { get; init; } = 64f;
 
     internal bool UseMultithreading { get; init; }
 
@@ -47,14 +47,15 @@ internal static class LocalFragmentEngine
         bool[] writtenMask = new bool[source.Width * source.Height];
         float globalMean = LocalFragmentMath.ComputeMean(source.Brightness);
         float globalStandardDeviation = LocalFragmentMath.ComputePopulationStandardDeviation(source.Brightness, globalMean);
+        float targetStandardDeviation = LocalFragmentMath.ComputeAdaptiveTargetStandardDeviation(globalStandardDeviation);
 
         if (settings.UseMultithreading)
         {
-            ProcessParallel(source, settings, result, writtenMask, globalMean, globalStandardDeviation);
+            ProcessParallel(source, settings, result, writtenMask, globalMean, globalStandardDeviation, targetStandardDeviation);
         }
         else
         {
-            ProcessSequential(source, settings, result, writtenMask, globalMean, globalStandardDeviation);
+            ProcessSequential(source, settings, result, writtenMask, globalMean, globalStandardDeviation, targetStandardDeviation);
         }
 
         return source.ToBitmap(result);
@@ -66,14 +67,15 @@ internal static class LocalFragmentEngine
         byte[] result,
         bool[] writtenMask,
         float globalMean,
-        float globalStandardDeviation)
+        float globalStandardDeviation,
+        float targetStandardDeviation)
     {
         for (int y = 0; y < source.Height; y++)
         {
             for (int x = 0; x < source.Width; x++)
             {
                 FragmentBounds bounds = CreateBounds(source, settings, x, y);
-                byte[] fragment = ProcessFragment(source, bounds, settings, globalMean, globalStandardDeviation);
+                byte[] fragment = ProcessFragment(source, bounds, settings, globalMean, globalStandardDeviation, targetStandardDeviation);
                 ApplySequentialOverlap(fragment, bounds, source.Width, result, writtenMask);
             }
         }
@@ -85,7 +87,8 @@ internal static class LocalFragmentEngine
         byte[] result,
         bool[] writtenMask,
         float globalMean,
-        float globalStandardDeviation)
+        float globalStandardDeviation,
+        float targetStandardDeviation)
     {
         ParallelOptions options = new ParallelOptions
         {
@@ -100,7 +103,7 @@ internal static class LocalFragmentEngine
             Parallel.For(0, source.Width, options, x =>
             {
                 FragmentBounds bounds = CreateBounds(source, settings, x, rowY);
-                rowFragments[x] = ProcessFragment(source, bounds, settings, globalMean, globalStandardDeviation);
+                rowFragments[x] = ProcessFragment(source, bounds, settings, globalMean, globalStandardDeviation, targetStandardDeviation);
             });
 
             for (int x = 0; x < source.Width; x++)
@@ -125,7 +128,8 @@ internal static class LocalFragmentEngine
         FragmentBounds bounds,
         LocalFragmentSettings settings,
         float globalMean,
-        float globalStandardDeviation)
+        float globalStandardDeviation,
+        float targetStandardDeviation)
     {
         int pixelCount = bounds.Width * bounds.Height;
         byte[] fragment = ArrayPool<byte>.Shared.Rent(pixelCount);
@@ -153,7 +157,7 @@ internal static class LocalFragmentEngine
 
             float fragmentMean = sum / pixelCount;
             float fragmentStandardDeviation = LocalFragmentMath.ComputePopulationStandardDeviation(fragmentValues, fragmentMean);
-            float? coefficient = ResolveCoefficient(settings, globalStandardDeviation, fragmentStandardDeviation);
+            float? coefficient = ResolveCoefficient(settings, globalStandardDeviation, fragmentStandardDeviation, targetStandardDeviation);
 
             if (coefficient is null)
             {
@@ -184,7 +188,8 @@ internal static class LocalFragmentEngine
     private static float? ResolveCoefficient(
         LocalFragmentSettings settings,
         float globalStandardDeviation,
-        float fragmentStandardDeviation)
+        float fragmentStandardDeviation,
+        float targetStandardDeviation)
     {
         if (globalStandardDeviation <= LocalFragmentMath.Epsilon)
         {
@@ -193,13 +198,13 @@ internal static class LocalFragmentEngine
 
         return settings.ProcessorKind switch
         {
-            LocalFragmentProcessorKind.Method1 => (settings.TargetStandardDeviation / globalStandardDeviation) - 1f,
+            LocalFragmentProcessorKind.Method1 => (targetStandardDeviation / globalStandardDeviation) - 1f,
             LocalFragmentProcessorKind.Method2 => fragmentStandardDeviation <= LocalFragmentMath.Epsilon
                 ? null
-                : (settings.TargetStandardDeviation / fragmentStandardDeviation) - 1f,
+                : (targetStandardDeviation / fragmentStandardDeviation) - 1f,
             LocalFragmentProcessorKind.Method3 => fragmentStandardDeviation <= LocalFragmentMath.Epsilon
                 ? null
-                : ((settings.TargetStandardDeviation / fragmentStandardDeviation)
+                : ((targetStandardDeviation / fragmentStandardDeviation)
                     * MathF.Pow(fragmentStandardDeviation / globalStandardDeviation, 1f - ComputeAdaptiveQ(globalStandardDeviation))) - 1f,
             _ => throw new ArgumentOutOfRangeException(nameof(settings.ProcessorKind), settings.ProcessorKind, "Unknown local fragment method.")
         };
@@ -254,6 +259,13 @@ internal static class LocalFragmentMath
     internal static byte ToByteBrightness(byte r, byte g, byte b)
     {
         return RoundClamp((0.2126f * r) + (0.7152f * g) + (0.0722f * b));
+    }
+
+    internal static float ComputeAdaptiveTargetStandardDeviation(float sourceStandardDeviation)
+    {
+        float target = sourceStandardDeviation
+            + (LocalFragmentSettings.AdaptiveSigmaBlend * (LocalFragmentSettings.AdaptiveSigmaReferenceDeviation - sourceStandardDeviation));
+        return Math.Clamp(target, 0f, 128f);
     }
 
     internal static float ComputeMean(ReadOnlySpan<byte> values)

@@ -6,7 +6,9 @@ Windows Forms application for:
 - saving the processed result.
 
 ## Current Branch
-This `smoothQ` branch contains the grayscale version with automatic `q` for local method 3.
+This `smooth_sigma` branch contains the grayscale version with:
+- automatic target standard deviation `σz`;
+- automatic `q` for local method 3.
 
 Implemented modes:
 - global television-style contrast transform for grayscale brightness;
@@ -23,6 +25,26 @@ y = 0.2126R + 0.7152G + 0.0722B
 
 Brightness values are rounded to the nearest integer and clamped to `[0, 255]`.
 
+## Adaptive Target Standard Deviation
+This branch no longer uses manual `σz`.
+
+Instead, the target standard deviation is chosen automatically from the source-image standard deviation:
+
+```text
+sigma_z = sigma_y + 0.5 * (80 - sigma_y)
+```
+
+Equivalent form:
+
+```text
+sigma_z = 0.5 * sigma_y + 40
+```
+
+Interpretation:
+- if the source image has low contrast, `sigma_z` is pushed upward;
+- if the source image already has higher contrast, `sigma_z` stays closer to the source;
+- this makes enhancement strength image-dependent rather than manually fixed.
+
 ## Global TV Contrast
 The global mode applies a television-style grayscale transform:
 
@@ -36,7 +58,7 @@ Where:
 - `z` is the transformed brightness;
 - `y_bar` is the global mean brightness;
 - `sigma_y` is the source-image standard deviation;
-- `sigma_z` is the target standard deviation selected in the UI.
+- `sigma_z` is the adaptive target standard deviation.
 
 Notes:
 - if `sigma_y = 0`, the image remains unchanged;
@@ -55,7 +77,7 @@ Overlap handling follows the paper-style sequential rule:
 Supported local methods:
 
 ### Method 1
-Uses a fragment transform driven by the global target deviation.
+Uses a fragment transform driven by the adaptive global target deviation.
 
 ### Method 2
 Uses a fragment-specific coefficient:
@@ -73,22 +95,24 @@ Uses the generalized coefficient:
 k_frag = (sigma_gl_z / sigma_frag_y) * (sigma_frag_y / sigma_gl_y)^(1 - q) - 1
 ```
 
-This branch uses adaptive `q`:
+This branch also uses adaptive `q`:
 
 ```text
 q = clamp(1 - sigma_gl_y / 80, 0, 1)
 ```
 
-So lower-contrast images receive stronger local adaptation automatically. The UI shows the adaptive rule and does not expose manual `q` input.
+So this branch combines both modifications:
+- adaptive `σz`;
+- adaptive `q` for method 3.
 
 ## UI Features
 - fixed dark UI style;
 - `Load`, `Apply`, `Save` buttons;
 - mode selector: `Global Contrast` / `Local Fragment`;
-- target standard deviation input `σz`;
 - local method selector: `Method 1`, `Method 2`, `Method 3`;
 - fragment width and height controls;
 - optional multithreaded fragment processing;
+- automatic `σz` rule shown in the UI;
 - adaptive `q` hint displayed for method 3;
 - centered image viewport with rounded controls.
 
@@ -107,7 +131,7 @@ dotnet run --project .\ImageContrastApp\ImageContrastApp.csproj
 - `ImageContrastApp/MainForm.cs` - form layout and controls.
 - `ImageContrastApp/MainForm.Actions.cs` - form actions and mode handling.
 - `ImageContrastApp/MainForm.Styling.cs` - fixed dark styling helpers.
-- `ImageContrastApp/ImageContrastProcessor.cs` - global grayscale TV contrast.
-- `ImageContrastApp/LocalFragmentProcessing.cs` - local fragment engine, formulas, and adaptive `q`.
+- `ImageContrastApp/ImageContrastProcessor.cs` - global grayscale TV contrast with adaptive `σz`.
+- `ImageContrastApp/LocalFragmentProcessing.cs` - local fragment engine, formulas, adaptive `σz`, and adaptive `q`.
 - `ImageContrastApp/GrayImageBuffer.cs` - grayscale image conversion and bitmap output.
 - `ImageContrastApp/BitmapPixelBuffer.cs` - low-level pixel buffer helper.

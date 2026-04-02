@@ -48,7 +48,7 @@ public sealed partial class MainForm
         {
             Bitmap adjusted = GetSelectedProcessingMode() switch
             {
-                ProcessingMode.GlobalContrast => ImageContrastProcessor.AdjustGlobalContrast(originalImage, (float)numContrastFactor.Value),
+                ProcessingMode.GlobalContrast => ImageContrastProcessor.AdjustGlobalContrast(originalImage),
                 ProcessingMode.LocalFragment => LocalFragmentEngine.Process(originalImage, BuildLocalFragmentSettings()),
                 _ => throw new InvalidOperationException("Unknown processing mode.")
             };
@@ -137,7 +137,6 @@ public sealed partial class MainForm
         {
             FragmentWidth = (int)numFragmentWidth.Value,
             FragmentHeight = (int)numFragmentHeight.Value,
-            TargetStandardDeviation = (float)numContrastFactor.Value,
             UseMultithreading = chkUseMultithreading.Checked,
             MaxDegreeOfParallelism = Environment.ProcessorCount,
             ProcessorKind = GetSelectedLocalProcessorKind()
@@ -148,12 +147,13 @@ public sealed partial class MainForm
     {
         bool isLocalMode = GetSelectedProcessingMode() == ProcessingMode.LocalFragment;
         bool showAdaptiveQ = isLocalMode && GetSelectedLocalProcessorKind() == LocalFragmentProcessorKind.Method3;
-        lblContrast.Text = isLocalMode ? "σz (Local):" : "σz (Global TV):";
+        lblContrast.Text = "σz = 0.5σ + 40";
         lblBlendQ.Text = "q = clamp(1 - σ/80):";
 
         cmbLocalProcessor.Enabled = isLocalMode;
         numFragmentWidth.Enabled = isLocalMode;
         numFragmentHeight.Enabled = isLocalMode;
+        numContrastFactor.Visible = false;
         numBlendQ.Visible = false;
         chkUseMultithreading.Enabled = isLocalMode;
         lblLocalProcessor.Enabled = isLocalMode;
