@@ -7,10 +7,11 @@ Windows Forms application for:
 
 ## Current Branch
 This `grayscale` branch contains a grayscale-focused version of the app.
+The UI uses a simple i18n layer and switches to Russian when the current UI culture is `ru`.
 
 Implemented modes:
 - global television-style contrast transform for grayscale brightness;
-- local fragment contrast transform for grayscale brightness with methods 1, 2, and 3.
+- local fragment contrast transform for grayscale brightness with methods 1, 2, 3, and 4.
 
 Color images can still be loaded, but they are converted to grayscale brightness before processing. Output images are saved as grayscale (`R = G = B`).
 
@@ -75,13 +76,22 @@ k_frag = (sigma_gl_z / sigma_frag_y) * (sigma_frag_y / sigma_gl_y)^(1 - q) - 1
 
 In this branch, `q` is set manually in the UI.
 
+### Method 4
+Uses the same generalized coefficient as method 3, but with adaptive `q` from the previous `smoothQ` branch:
+
+```text
+q = clamp(1 - sigma_gl_y / 80, 0, 1)
+```
+
 ## UI Features
 - fixed dark UI style;
-- `Load`, `Apply`, `Save` buttons;
-- mode selector: `Global Contrast` / `Local Fragment`;
-- target standard deviation input `σz`;
-- local method selector: `Method 1`, `Method 2`, `Method 3`;
+- localized UI text with English and Russian resources;
+- mode selector for global and local processing;
+- target standard deviation input `sigma_z`;
+- local method selector with short Russian titles for global sigma, local sigma, manual q, and adaptive q;
 - fragment width and height controls;
+- manual `q` input for method 3;
+- adaptive `q` hint for method 4;
 - optional multithreaded fragment processing;
 - centered image viewport with rounded controls.
 

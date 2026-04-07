@@ -7,6 +7,8 @@ namespace ImageContrastApp;
 
 public sealed partial class MainForm : Form
 {
+    private UiTextSet uiText => UiText.Current;
+
     private enum ProcessingMode
     {
         GlobalContrast,
@@ -30,12 +32,14 @@ public sealed partial class MainForm : Form
     private readonly NumericUpDown numFragmentHeight;
     private readonly NumericUpDown numBlendQ;
     private readonly Label lblContrast;
+    private readonly Label lblLanguage;
     private readonly Label lblProcessingMode;
     private readonly Label lblLocalProcessor;
     private readonly Label lblFragmentWidth;
     private readonly Label lblFragmentHeight;
     private readonly Label lblBlendQ;
     private readonly CheckBox chkUseMultithreading;
+    private readonly ComboBox cmbLanguage;
     private readonly PictureBox pictureBox;
     private readonly Dictionary<Button, Color> buttonBaseColors;
 
@@ -44,7 +48,7 @@ public sealed partial class MainForm : Form
 
     public MainForm()
     {
-        Text = "Image Contrast Processor";
+        Text = uiText.FormTitle;
         Width = 1000;
         Height = 700;
         MinimumSize = new Size(900, 620);
@@ -75,8 +79,8 @@ public sealed partial class MainForm : Form
 
         btnLoadImage = new Button
         {
-            Text = "Load",
-            Width = 118,
+            Text = uiText.LoadButton,
+            Width = 128,
             Height = 34,
             Margin = new Padding(0, 0, 10, 0)
         };
@@ -84,7 +88,7 @@ public sealed partial class MainForm : Form
 
         btnApplyContrast = new Button
         {
-            Text = "Apply",
+            Text = uiText.ApplyButton,
             Width = 148,
             Height = 34,
             Margin = new Padding(0, 0, 10, 0)
@@ -93,8 +97,8 @@ public sealed partial class MainForm : Form
 
         btnSaveImage = new Button
         {
-            Text = "Save",
-            Width = 118,
+            Text = uiText.SaveButton,
+            Width = 128,
             Height = 34,
             Margin = new Padding(0, 0, 20, 0)
         };
@@ -103,6 +107,26 @@ public sealed partial class MainForm : Form
         actionRow.Controls.Add(btnLoadImage);
         actionRow.Controls.Add(btnApplyContrast);
         actionRow.Controls.Add(btnSaveImage);
+
+        lblLanguage = new Label
+        {
+            Text = uiText.LanguageLabel,
+            AutoSize = true,
+            Margin = new Padding(0, 12, 8, 0)
+        };
+
+        cmbLanguage = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Width = 116,
+            Height = 30,
+            Margin = new Padding(0, 7, 0, 0),
+            FlatStyle = FlatStyle.Flat
+        };
+        cmbLanguage.SelectedIndexChanged += cmbLanguage_SelectedIndexChanged;
+
+        actionRow.Controls.Add(lblLanguage);
+        actionRow.Controls.Add(cmbLanguage);
 
         paramsRow = new FlowLayoutPanel
         {
@@ -116,7 +140,7 @@ public sealed partial class MainForm : Form
 
         lblProcessingMode = new Label
         {
-            Text = "Mode:",
+            Text = uiText.ModeLabel,
             AutoSize = true,
             Margin = new Padding(0, 12, 8, 0)
         };
@@ -124,13 +148,13 @@ public sealed partial class MainForm : Form
         cmbProcessingMode = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Width = 150,
+            Width = 160,
             Height = 30,
             Margin = new Padding(0, 7, 18, 0),
             FlatStyle = FlatStyle.Flat
         };
-        cmbProcessingMode.Items.Add("Global Contrast");
-        cmbProcessingMode.Items.Add("Local Fragment");
+        cmbProcessingMode.Items.Add(uiText.GlobalMode);
+        cmbProcessingMode.Items.Add(uiText.LocalMode);
         cmbProcessingMode.SelectedIndex = 0;
         cmbProcessingMode.SelectedIndexChanged += (_, _) => UpdateParameterAvailability();
 
@@ -155,7 +179,7 @@ public sealed partial class MainForm : Form
 
         lblLocalProcessor = new Label
         {
-            Text = "Local:",
+            Text = uiText.LocalMethodLabel,
             AutoSize = true,
             Margin = new Padding(0, 12, 8, 0)
         };
@@ -163,20 +187,21 @@ public sealed partial class MainForm : Form
         cmbLocalProcessor = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Width = 132,
+            Width = 140,
             Height = 30,
             Margin = new Padding(0, 7, 18, 0),
             FlatStyle = FlatStyle.Flat
         };
-        cmbLocalProcessor.Items.Add("Method 1");
-        cmbLocalProcessor.Items.Add("Method 2");
-        cmbLocalProcessor.Items.Add("Method 3");
+        cmbLocalProcessor.Items.Add(uiText.Method1);
+        cmbLocalProcessor.Items.Add(uiText.Method2);
+        cmbLocalProcessor.Items.Add(uiText.Method3);
+        cmbLocalProcessor.Items.Add(uiText.Method4);
         cmbLocalProcessor.SelectedIndex = 0;
         cmbLocalProcessor.SelectedIndexChanged += (_, _) => UpdateParameterAvailability();
 
         lblFragmentWidth = new Label
         {
-            Text = "Frag W:",
+            Text = uiText.FragmentWidthLabel,
             AutoSize = true,
             Margin = new Padding(0, 12, 8, 0)
         };
@@ -195,7 +220,7 @@ public sealed partial class MainForm : Form
 
         lblFragmentHeight = new Label
         {
-            Text = "Frag H:",
+            Text = uiText.FragmentHeightLabel,
             AutoSize = true,
             Margin = new Padding(0, 12, 8, 0)
         };
@@ -214,7 +239,7 @@ public sealed partial class MainForm : Form
 
         lblBlendQ = new Label
         {
-            Text = "q:",
+            Text = uiText.BlendQLabel,
             AutoSize = true,
             Margin = new Padding(0, 12, 8, 0)
         };
@@ -233,7 +258,7 @@ public sealed partial class MainForm : Form
 
         chkUseMultithreading = new CheckBox
         {
-            Text = "Multithread",
+            Text = uiText.Multithreading,
             AutoSize = true,
             Margin = new Padding(0, 11, 0, 0)
         };
@@ -287,6 +312,7 @@ public sealed partial class MainForm : Form
         UpdateImageViewportBounds();
         ApplyRoundedCorners(imageFrame, 16);
         ApplyTheme();
+        ApplyLocalizedText();
         UpdateParameterAvailability();
     }
 }

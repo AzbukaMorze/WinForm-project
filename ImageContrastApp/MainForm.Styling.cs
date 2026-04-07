@@ -29,6 +29,7 @@ public sealed partial class MainForm
 
         lblProcessingMode.ForeColor = textColor;
         lblContrast.ForeColor = textColor;
+        lblLanguage.ForeColor = textColor;
         lblLocalProcessor.ForeColor = textColor;
         lblFragmentWidth.ForeColor = textColor;
         lblFragmentHeight.ForeColor = textColor;
@@ -37,6 +38,7 @@ public sealed partial class MainForm
         chkUseMultithreading.BackColor = panelBack;
 
         StyleComboControl(cmbProcessingMode, inputBack, inputText);
+        StyleComboControl(cmbLanguage, inputBack, inputText);
         StyleComboControl(cmbLocalProcessor, inputBack, inputText);
         StyleNumericControl(numContrastFactor, inputBack, inputText);
         StyleNumericControl(numFragmentWidth, inputBack, inputText);

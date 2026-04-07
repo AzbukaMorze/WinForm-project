@@ -8,6 +8,21 @@ namespace ImageContrastApp;
 
 public sealed partial class MainForm
 {
+    private void cmbLanguage_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        UiLanguage selectedLanguage = cmbLanguage.SelectedIndex == 1
+            ? UiLanguage.English
+            : UiLanguage.Russian;
+
+        if (UiText.CurrentLanguage == selectedLanguage)
+        {
+            return;
+        }
+
+        UiText.CurrentLanguage = selectedLanguage;
+        ApplyLocalizedText();
+    }
+
     protected override void OnFormClosed(FormClosedEventArgs e)
     {
         ClearImages();
@@ -18,8 +33,8 @@ public sealed partial class MainForm
     {
         using var openFileDialog = new OpenFileDialog
         {
-            Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp",
-            Title = "Select an image"
+            Filter = uiText.ImageFilesFilter,
+            Title = uiText.OpenImageTitle
         };
 
         if (openFileDialog.ShowDialog() != DialogResult.OK)
@@ -40,7 +55,7 @@ public sealed partial class MainForm
     {
         if (originalImage is null)
         {
-            MessageBox.Show("Load an image first.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(uiText.LoadImageFirst, uiText.InfoCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
@@ -57,7 +72,7 @@ public sealed partial class MainForm
         }
         catch (NotImplementedException ex)
         {
-            MessageBox.Show(ex.Message, "Not available", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(ex.Message, uiText.NotAvailableCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 
@@ -65,15 +80,15 @@ public sealed partial class MainForm
     {
         if (displayedImage is null)
         {
-            MessageBox.Show("No image to save.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(uiText.NoImageToSave, uiText.InfoCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
 
         using var saveFileDialog = new SaveFileDialog
         {
-            Filter = "PNG Image|*.png|JPEG Image|*.jpg;*.jpeg|BMP Image|*.bmp",
-            Title = "Save processed image",
-            FileName = "processed-image.png"
+            Filter = uiText.SaveImageFilter,
+            Title = uiText.SaveImageTitle,
+            FileName = uiText.SaveImageDefaultName
         };
 
         if (saveFileDialog.ShowDialog() != DialogResult.OK)
@@ -127,6 +142,7 @@ public sealed partial class MainForm
             0 => LocalFragmentProcessorKind.Method1,
             1 => LocalFragmentProcessorKind.Method2,
             2 => LocalFragmentProcessorKind.Method3,
+            3 => LocalFragmentProcessorKind.Method4,
             _ => LocalFragmentProcessorKind.Method1
         };
     }
@@ -148,17 +164,58 @@ public sealed partial class MainForm
     private void UpdateParameterAvailability()
     {
         bool isLocalMode = GetSelectedProcessingMode() == ProcessingMode.LocalFragment;
-        bool useBlendQ = isLocalMode && GetSelectedLocalProcessorKind() == LocalFragmentProcessorKind.Method3;
-        lblContrast.Text = isLocalMode ? "σz (Local):" : "σz (Global TV):";
+        LocalFragmentProcessorKind localKind = GetSelectedLocalProcessorKind();
+        bool useManualQ = isLocalMode && localKind == LocalFragmentProcessorKind.Method3;
+        bool showAdaptiveQHint = isLocalMode && localKind == LocalFragmentProcessorKind.Method4;
+        lblContrast.Text = isLocalMode ? uiText.ContrastLabelLocal : uiText.ContrastLabelGlobal;
+        lblBlendQ.Text = showAdaptiveQHint ? uiText.AdaptiveQLabel : uiText.BlendQLabel;
 
         cmbLocalProcessor.Enabled = isLocalMode;
         numFragmentWidth.Enabled = isLocalMode;
         numFragmentHeight.Enabled = isLocalMode;
-        numBlendQ.Enabled = useBlendQ;
+        numBlendQ.Visible = useManualQ;
+        numBlendQ.Enabled = useManualQ;
         chkUseMultithreading.Enabled = isLocalMode;
         lblLocalProcessor.Enabled = isLocalMode;
         lblFragmentWidth.Enabled = isLocalMode;
         lblFragmentHeight.Enabled = isLocalMode;
-        lblBlendQ.Enabled = useBlendQ;
+        lblBlendQ.Visible = useManualQ || showAdaptiveQHint;
+        lblBlendQ.Enabled = useManualQ;
+    }
+
+    private void ApplyLocalizedText()
+    {
+        int selectedModeIndex = cmbProcessingMode.SelectedIndex < 0 ? 0 : cmbProcessingMode.SelectedIndex;
+        int selectedMethodIndex = cmbLocalProcessor.SelectedIndex < 0 ? 0 : cmbLocalProcessor.SelectedIndex;
+
+        Text = uiText.FormTitle;
+        btnLoadImage.Text = uiText.LoadButton;
+        btnApplyContrast.Text = uiText.ApplyButton;
+        btnSaveImage.Text = uiText.SaveButton;
+        lblLanguage.Text = uiText.LanguageLabel;
+        lblProcessingMode.Text = uiText.ModeLabel;
+        lblLocalProcessor.Text = uiText.LocalMethodLabel;
+        lblFragmentWidth.Text = uiText.FragmentWidthLabel;
+        lblFragmentHeight.Text = uiText.FragmentHeightLabel;
+        chkUseMultithreading.Text = uiText.Multithreading;
+
+        cmbLanguage.Items.Clear();
+        cmbLanguage.Items.Add(uiText.RussianLanguage);
+        cmbLanguage.Items.Add(uiText.EnglishLanguage);
+        cmbLanguage.SelectedIndex = UiText.CurrentLanguage == UiLanguage.Russian ? 0 : 1;
+
+        cmbProcessingMode.Items.Clear();
+        cmbProcessingMode.Items.Add(uiText.GlobalMode);
+        cmbProcessingMode.Items.Add(uiText.LocalMode);
+        cmbProcessingMode.SelectedIndex = selectedModeIndex;
+
+        cmbLocalProcessor.Items.Clear();
+        cmbLocalProcessor.Items.Add(uiText.Method1);
+        cmbLocalProcessor.Items.Add(uiText.Method2);
+        cmbLocalProcessor.Items.Add(uiText.Method3);
+        cmbLocalProcessor.Items.Add(uiText.Method4);
+        cmbLocalProcessor.SelectedIndex = selectedMethodIndex;
+
+        UpdateParameterAvailability();
     }
 }

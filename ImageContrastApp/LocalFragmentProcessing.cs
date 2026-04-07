@@ -8,11 +8,14 @@ internal enum LocalFragmentProcessorKind
 {
     Method1,
     Method2,
-    Method3
+    Method3,
+    Method4
 }
 
 internal sealed class LocalFragmentSettings
 {
+    internal const float AdaptiveQReferenceDeviation = 80f;
+
     internal int FragmentWidth { get; init; } = 9;
 
     internal int FragmentHeight { get; init; } = 9;
@@ -201,8 +204,18 @@ internal static class LocalFragmentEngine
                 ? null
                 : ((settings.TargetStandardDeviation / fragmentStandardDeviation)
                     * MathF.Pow(fragmentStandardDeviation / globalStandardDeviation, 1f - settings.BlendQ)) - 1f,
+            LocalFragmentProcessorKind.Method4 => fragmentStandardDeviation <= LocalFragmentMath.Epsilon
+                ? null
+                : ((settings.TargetStandardDeviation / fragmentStandardDeviation)
+                    * MathF.Pow(fragmentStandardDeviation / globalStandardDeviation, 1f - ComputeAdaptiveQ(globalStandardDeviation))) - 1f,
             _ => throw new ArgumentOutOfRangeException(nameof(settings.ProcessorKind), settings.ProcessorKind, "Unknown local fragment method.")
         };
+    }
+
+    private static float ComputeAdaptiveQ(float globalStandardDeviation)
+    {
+        float q = 1f - (globalStandardDeviation / LocalFragmentSettings.AdaptiveQReferenceDeviation);
+        return Math.Clamp(q, 0f, 1f);
     }
 
     private static void ApplySequentialOverlap(
