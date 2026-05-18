@@ -11,7 +11,11 @@ internal enum UiLanguage
 
 internal static class UiText
 {
-    private static UiLanguage currentLanguage = UiLanguage.Russian;
+    private static UiLanguage currentLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals(
+        "ru",
+        StringComparison.OrdinalIgnoreCase)
+            ? UiLanguage.Russian
+            : UiLanguage.English;
 
     private static readonly UiTextSet English = new()
     {

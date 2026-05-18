@@ -29,7 +29,7 @@ internal static class ImageContrastProcessor
 
             byte[] sourceBuffer = new byte[sourceBytes];
             byte[] resultBuffer = new byte[resultBytes];
-            float[] brightnessValues = new float[source.Width * source.Height];
+            byte[] brightnessValues = new byte[source.Width * source.Height];
 
             Marshal.Copy(sourceData.Scan0, sourceBuffer, 0, sourceBytes);
 
@@ -44,7 +44,7 @@ internal static class ImageContrastProcessor
                 for (int x = 0; x < source.Width; x++)
                 {
                     int sIndex = sourceRow + (x * 4);
-                    float brightness = GetBrightness(sourceBuffer[sIndex + 2], sourceBuffer[sIndex + 1], sourceBuffer[sIndex]);
+                    byte brightness = LocalFragmentMath.ToByteBrightness(sourceBuffer[sIndex + 2], sourceBuffer[sIndex + 1], sourceBuffer[sIndex]);
 
                     brightnessValues[pixelIndex] = brightness;
                     brightnessSum += brightness;
@@ -53,7 +53,7 @@ internal static class ImageContrastProcessor
             }
 
             float averageBrightness = (float)(brightnessSum / brightnessValues.Length);
-            float sourceStandardDeviation = ComputePopulationStandardDeviation(brightnessValues, averageBrightness);
+            float sourceStandardDeviation = LocalFragmentMath.ComputePopulationStandardDeviation(brightnessValues, averageBrightness);
             float contrastCoefficient = sourceStandardDeviation > 0.0001f
                 ? (targetStandardDeviation / sourceStandardDeviation) - 1f
                 : 0f;
@@ -78,7 +78,7 @@ internal static class ImageContrastProcessor
                     // Global television transform on grayscale brightness:
                     // z = y + k * (y - y_bar), with k = sigma_z / sigma_y - 1
                     float transformedBrightness = sourceBrightness + (contrastCoefficient * (sourceBrightness - averageBrightness));
-                    byte gray = ClampToByte(transformedBrightness);
+                    byte gray = LocalFragmentMath.RoundClamp(transformedBrightness);
 
                     resultBuffer[dIndex] = gray;
                     resultBuffer[dIndex + 1] = gray;
@@ -106,36 +106,4 @@ internal static class ImageContrastProcessor
         return result;
     }
 
-    private static float GetBrightness(byte r, byte g, byte b)
-    {
-        return (0.2126f * r) + (0.7152f * g) + (0.0722f * b);
-    }
-
-    private static float ComputePopulationStandardDeviation(float[] values, float mean)
-    {
-        double squaredDifferenceSum = 0d;
-
-        for (int i = 0; i < values.Length; i++)
-        {
-            double difference = values[i] - mean;
-            squaredDifferenceSum += difference * difference;
-        }
-
-        return (float)Math.Sqrt(squaredDifferenceSum / values.Length);
-    }
-
-    private static byte ClampToByte(float value)
-    {
-        if (value <= 0f)
-        {
-            return 0;
-        }
-
-        if (value >= 255f)
-        {
-            return byte.MaxValue;
-        }
-
-        return (byte)Math.Round(value, MidpointRounding.AwayFromZero);
-    }
 }

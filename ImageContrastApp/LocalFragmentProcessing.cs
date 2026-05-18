@@ -131,8 +131,7 @@ internal static class LocalFragmentEngine
         float globalStandardDeviation)
     {
         int pixelCount = bounds.Width * bounds.Height;
-        byte[] fragment = ArrayPool<byte>.Shared.Rent(pixelCount);
-        Span<byte> output = fragment.AsSpan(0, pixelCount);
+        byte[] output = new byte[pixelCount];
         float[] values = ArrayPool<float>.Shared.Rent(pixelCount);
         Span<float> fragmentValues = values.AsSpan(0, pixelCount);
 
@@ -165,7 +164,7 @@ internal static class LocalFragmentEngine
                     output[i] = LocalFragmentMath.RoundClamp(fragmentValues[i]);
                 }
 
-                return output.ToArray();
+                return output;
             }
 
             for (int i = 0; i < pixelCount; i++)
@@ -175,11 +174,10 @@ internal static class LocalFragmentEngine
                 output[i] = LocalFragmentMath.RoundClamp(transformed);
             }
 
-            return output.ToArray();
+            return output;
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(fragment);
             ArrayPool<float>.Shared.Return(values);
         }
     }
