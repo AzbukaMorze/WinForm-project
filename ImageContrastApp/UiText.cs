@@ -29,6 +29,7 @@ internal static class UiText
         ModeLabel = "Mode:",
         GlobalMode = "Global Contrast",
         LocalMode = "Local Fragment",
+        LocalMeanTvMode = "TV + Local Mean",
         ContrastLabelGlobal = "\u03C3z (Global TV):",
         ContrastLabelLocal = "\u03C3z (Local):",
         LocalMethodLabel = "Method:",
@@ -64,6 +65,7 @@ internal static class UiText
         ModeLabel = "\u0420\u0435\u0436\u0438\u043C:",
         GlobalMode = "\u0413\u043B\u043E\u0431\u0430\u043B\u044C\u043D\u044B\u0439",
         LocalMode = "\u041B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439",
+        LocalMeanTvMode = "\u0422\u0412 + \u043B\u043E\u043A. \u0441\u0440\u0435\u0434\u043D.",
         ContrastLabelGlobal = "\u03C3z (\u0433\u043B\u043E\u0431.):",
         ContrastLabelLocal = "\u03C3z (\u043B\u043E\u043A.):",
         LocalMethodLabel = "\u041C\u0435\u0442\u043E\u0434:",
@@ -108,6 +110,7 @@ internal sealed class UiTextSet
     internal required string ModeLabel { get; init; }
     internal required string GlobalMode { get; init; }
     internal required string LocalMode { get; init; }
+    internal required string LocalMeanTvMode { get; init; }
     internal required string ContrastLabelGlobal { get; init; }
     internal required string ContrastLabelLocal { get; init; }
     internal required string LocalMethodLabel { get; init; }

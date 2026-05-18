@@ -6,11 +6,12 @@ Windows Forms application for:
 - saving the processed result.
 
 ## Current Branch
-This `grayscale` branch contains a grayscale-focused version of the app.
+This branch contains a grayscale-focused version of the app.
 The UI uses a simple i18n layer and switches to Russian when the current UI culture is `ru`.
 
 Implemented modes:
 - global television-style contrast transform for grayscale brightness;
+- television-style contrast transform with a global coefficient and local-window mean brightness;
 - local fragment contrast transform for grayscale brightness with methods 1, 2, 3, and 4.
 
 Color images can still be loaded, but they are converted to grayscale brightness before processing. Output images are saved as grayscale (`R = G = B`).
@@ -42,6 +43,20 @@ Where:
 Notes:
 - if `sigma_y = 0`, the image remains unchanged;
 - the output is grayscale only.
+
+## Global TV Contrast With Local Mean
+This mode keeps the global television contrast coefficient but replaces the global mean brightness with a local-window mean:
+
+```text
+z = y + k(y - y_bar_local)
+k = sigma_z / sigma_y - 1
+```
+
+Where:
+- `sigma_y` is still computed globally across the whole image;
+- `y_bar_local` is computed inside the current `N x N` window;
+- the window uses the same top-left sliding fragment bounds as the local fragment mode;
+- cropped window bounds are used at image borders.
 
 ## Local Fragment Methods
 The local mode scans a rectangular fragment over the image with:
@@ -86,7 +101,8 @@ q = clamp(1 - sigma_gl_y / 80, 0, 1)
 ## UI Features
 - fixed dark UI style;
 - localized UI text with English and Russian resources;
-- mode selector for global and local processing;
+- mode selector for global, hybrid, and local processing;
+- hybrid TV/local-mean mode using the fragment width and height controls;
 - target standard deviation input `sigma_z`;
 - local method selector with short Russian titles for global sigma, local sigma, manual q, and adaptive q;
 - fragment width and height controls;

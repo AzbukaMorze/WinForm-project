@@ -65,6 +65,11 @@ public sealed partial class MainForm
             {
                 ProcessingMode.GlobalContrast => ImageContrastProcessor.AdjustGlobalContrast(originalImage, (float)numContrastFactor.Value),
                 ProcessingMode.LocalFragment => LocalFragmentEngine.Process(originalImage, BuildLocalFragmentSettings()),
+                ProcessingMode.LocalMeanTvContrast => LocalMeanTvProcessor.AdjustContrast(
+                    originalImage,
+                    (float)numContrastFactor.Value,
+                    (int)numFragmentWidth.Value,
+                    (int)numFragmentHeight.Value),
                 _ => throw new InvalidOperationException("Unknown processing mode.")
             };
 
@@ -130,9 +135,12 @@ public sealed partial class MainForm
 
     private ProcessingMode GetSelectedProcessingMode()
     {
-        return cmbProcessingMode.SelectedIndex == 1
-            ? ProcessingMode.LocalFragment
-            : ProcessingMode.GlobalContrast;
+        return cmbProcessingMode.SelectedIndex switch
+        {
+            1 => ProcessingMode.LocalFragment,
+            2 => ProcessingMode.LocalMeanTvContrast,
+            _ => ProcessingMode.GlobalContrast
+        };
     }
 
     private LocalFragmentProcessorKind GetSelectedLocalProcessorKind()
@@ -163,7 +171,9 @@ public sealed partial class MainForm
 
     private void UpdateParameterAvailability()
     {
-        bool isLocalMode = GetSelectedProcessingMode() == ProcessingMode.LocalFragment;
+        ProcessingMode selectedMode = GetSelectedProcessingMode();
+        bool isLocalMode = selectedMode == ProcessingMode.LocalFragment;
+        bool usesWindow = isLocalMode || selectedMode == ProcessingMode.LocalMeanTvContrast;
         LocalFragmentProcessorKind localKind = GetSelectedLocalProcessorKind();
         bool useManualQ = isLocalMode && localKind == LocalFragmentProcessorKind.Method3;
         bool showAdaptiveQHint = isLocalMode && localKind == LocalFragmentProcessorKind.Method4;
@@ -171,14 +181,14 @@ public sealed partial class MainForm
         lblBlendQ.Text = showAdaptiveQHint ? uiText.AdaptiveQLabel : uiText.BlendQLabel;
 
         cmbLocalProcessor.Enabled = isLocalMode;
-        numFragmentWidth.Enabled = isLocalMode;
-        numFragmentHeight.Enabled = isLocalMode;
+        numFragmentWidth.Enabled = usesWindow;
+        numFragmentHeight.Enabled = usesWindow;
         numBlendQ.Visible = useManualQ;
         numBlendQ.Enabled = useManualQ;
         chkUseMultithreading.Enabled = isLocalMode;
         lblLocalProcessor.Enabled = isLocalMode;
-        lblFragmentWidth.Enabled = isLocalMode;
-        lblFragmentHeight.Enabled = isLocalMode;
+        lblFragmentWidth.Enabled = usesWindow;
+        lblFragmentHeight.Enabled = usesWindow;
         lblBlendQ.Visible = useManualQ || showAdaptiveQHint;
         lblBlendQ.Enabled = useManualQ;
     }
@@ -207,6 +217,7 @@ public sealed partial class MainForm
         cmbProcessingMode.Items.Clear();
         cmbProcessingMode.Items.Add(uiText.GlobalMode);
         cmbProcessingMode.Items.Add(uiText.LocalMode);
+        cmbProcessingMode.Items.Add(uiText.LocalMeanTvMode);
         cmbProcessingMode.SelectedIndex = selectedModeIndex;
 
         cmbLocalProcessor.Items.Clear();

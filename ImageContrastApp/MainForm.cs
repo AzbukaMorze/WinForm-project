@@ -12,7 +12,8 @@ public sealed partial class MainForm : Form
     private enum ProcessingMode
     {
         GlobalContrast,
-        LocalFragment
+        LocalFragment,
+        LocalMeanTvContrast
     }
 
     private readonly Panel topPanel;
@@ -155,6 +156,7 @@ public sealed partial class MainForm : Form
         };
         cmbProcessingMode.Items.Add(uiText.GlobalMode);
         cmbProcessingMode.Items.Add(uiText.LocalMode);
+        cmbProcessingMode.Items.Add(uiText.LocalMeanTvMode);
         cmbProcessingMode.SelectedIndex = 0;
         cmbProcessingMode.SelectedIndexChanged += (_, _) => UpdateParameterAvailability();
 
