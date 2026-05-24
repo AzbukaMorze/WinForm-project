@@ -24,8 +24,14 @@ public sealed partial class MainForm
         topPanel.BackColor = panelBack;
         topDivider.BackColor = dividerBack;
         imageCanvas.BackColor = canvasBack;
-        imageFrame.BackColor = frameBack;
-        pictureBox.BackColor = frameBack;
+        sourceImageFrame.BackColor = frameBack;
+        previousImageFrame.BackColor = frameBack;
+        currentImageFrame.BackColor = frameBack;
+        previousInfoPanel.BackColor = frameBack;
+        currentInfoPanel.BackColor = frameBack;
+        sourcePictureBox.BackColor = frameBack;
+        previousPictureBox.BackColor = frameBack;
+        currentPictureBox.BackColor = frameBack;
 
         lblProcessingMode.ForeColor = textColor;
         lblContrast.ForeColor = textColor;
@@ -34,6 +40,14 @@ public sealed partial class MainForm
         lblFragmentWidth.ForeColor = textColor;
         lblFragmentHeight.ForeColor = textColor;
         lblBlendQ.ForeColor = textColor;
+        lblSourcePreview.ForeColor = textColor;
+        lblPreviousPreview.ForeColor = textColor;
+        lblCurrentPreview.ForeColor = textColor;
+        lblSourceInfo.ForeColor = textColor;
+        lblPreviousInfo.ForeColor = textColor;
+        lblPreviousDetails.ForeColor = textColor;
+        lblCurrentInfo.ForeColor = textColor;
+        lblCurrentDetails.ForeColor = textColor;
         chkUseMultithreading.ForeColor = textColor;
         chkUseMultithreading.BackColor = panelBack;
 
@@ -52,24 +66,122 @@ public sealed partial class MainForm
 
     private void UpdateImageViewportBounds()
     {
-        Rectangle area = imageCanvas.ClientRectangle;
-        area.Inflate(-10, -10);
-
-        if (area.Width <= 0 || area.Height <= 0)
+        int availableWidth = imageCanvas.ClientSize.Width - imageCanvas.Padding.Horizontal;
+        if (availableWidth <= 0)
         {
             return;
         }
 
-        int targetWidth = (int)(area.Width * 0.90f);
-        int targetHeight = (int)(area.Height * 0.90f);
+        imageGrid.SuspendLayout();
+        imageGrid.ColumnStyles.Clear();
+        imageGrid.RowStyles.Clear();
 
-        targetWidth = Math.Max(160, Math.Min(area.Width, targetWidth));
-        targetHeight = Math.Max(140, Math.Min(area.Height, targetHeight));
+        if (availableWidth < 760)
+        {
+            imageGrid.ColumnCount = 1;
+            imageGrid.RowCount = 9;
+            imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            AddStackedPreviewRows();
+        }
+        else
+        {
+            imageGrid.ColumnCount = 3;
+            imageGrid.RowCount = 3;
+            imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
+            imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
+            imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334f));
+            imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+            SetPreviewCellPositionsForWideLayout();
+        }
 
-        int x = area.X + ((area.Width - targetWidth) / 2);
-        int y = area.Y + ((area.Height - targetHeight) / 2);
+        imageGrid.ResumeLayout();
+    }
 
-        imageFrame.Bounds = new Rectangle(x, y, targetWidth, targetHeight);
+    private void AddStackedPreviewRows()
+    {
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.333f));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.333f));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.334f));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+
+        SetCell(lblSourcePreview, 0, 0);
+        SetCell(sourceImageFrame, 0, 1);
+        SetCell(lblSourceInfo, 0, 2);
+        SetCell(lblPreviousPreview, 0, 3);
+        SetCell(previousImageFrame, 0, 4);
+        SetCell(previousInfoPanel, 0, 5);
+        SetCell(lblCurrentPreview, 0, 6);
+        SetCell(currentImageFrame, 0, 7);
+        SetCell(currentInfoPanel, 0, 8);
+    }
+
+    private void SetPreviewCellPositionsForWideLayout()
+    {
+        SetCell(lblSourcePreview, 0, 0);
+        SetCell(lblPreviousPreview, 1, 0);
+        SetCell(lblCurrentPreview, 2, 0);
+        SetCell(sourceImageFrame, 0, 1);
+        SetCell(previousImageFrame, 1, 1);
+        SetCell(currentImageFrame, 2, 1);
+        SetCell(lblSourceInfo, 0, 2);
+        SetCell(previousInfoPanel, 1, 2);
+        SetCell(currentInfoPanel, 2, 2);
+    }
+
+    private void SetCell(Control control, int column, int row)
+    {
+        imageGrid.SetColumn(control, column);
+        imageGrid.SetRow(control, row);
+        imageGrid.SetColumnSpan(control, 1);
+        imageGrid.SetRowSpan(control, 1);
+    }
+
+    private static Panel CreateImageFrame()
+    {
+        return new Panel
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(6)
+        };
+    }
+
+    private static PictureBox CreatePreviewPictureBox()
+    {
+        return new PictureBox
+        {
+            Dock = DockStyle.Fill,
+            SizeMode = PictureBoxSizeMode.Zoom
+        };
+    }
+
+    private static Label CreatePreviewTitleLabel()
+    {
+        return new Label
+        {
+            Dock = DockStyle.Fill,
+            AutoEllipsis = true,
+            Font = new Font(Control.DefaultFont, FontStyle.Bold),
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(8, 0, 8, 0)
+        };
+    }
+
+    private static Label CreatePreviewInfoLabel()
+    {
+        return new Label
+        {
+            Dock = DockStyle.Fill,
+            AutoEllipsis = true,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(8, 4, 8, 4)
+        };
     }
 
     private static void StyleNumericControl(NumericUpDown control, Color backColor, Color textColor)

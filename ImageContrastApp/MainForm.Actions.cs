@@ -45,15 +45,14 @@ public sealed partial class MainForm
         using var loaded = new Bitmap(openFileDialog.FileName);
         var loadedCopy = new Bitmap(loaded);
 
-        originalImage?.Dispose();
-        originalImage = loadedCopy;
-
-        SetDisplayedImage(new Bitmap(loadedCopy));
+        SetSourceImage(loadedCopy);
+        ClearProcessedImages();
+        UpdateProcessingInfo();
     }
 
     private void btnApplyContrast_Click(object? sender, EventArgs e)
     {
-        if (originalImage is null)
+        if (sourceImage is null)
         {
             MessageBox.Show(uiText.LoadImageFirst, uiText.InfoCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
@@ -63,17 +62,17 @@ public sealed partial class MainForm
         {
             Bitmap adjusted = GetSelectedProcessingMode() switch
             {
-                ProcessingMode.GlobalContrast => ImageContrastProcessor.AdjustGlobalContrast(originalImage, (float)numContrastFactor.Value),
-                ProcessingMode.LocalFragment => LocalFragmentEngine.Process(originalImage, BuildLocalFragmentSettings()),
+                ProcessingMode.GlobalContrast => ImageContrastProcessor.AdjustGlobalContrast(sourceImage, (float)numContrastFactor.Value),
+                ProcessingMode.LocalFragment => LocalFragmentEngine.Process(sourceImage, BuildLocalFragmentSettings()),
                 ProcessingMode.LocalMeanTvContrast => LocalMeanTvProcessor.AdjustContrast(
-                    originalImage,
+                    sourceImage,
                     (float)numContrastFactor.Value,
                     (int)numFragmentWidth.Value,
                     (int)numFragmentHeight.Value),
                 _ => throw new InvalidOperationException("Unknown processing mode.")
             };
 
-            SetDisplayedImage(adjusted);
+            SetCurrentProcessedImage(adjusted, BuildProcessingInfo());
         }
         catch (NotImplementedException ex)
         {
@@ -83,7 +82,7 @@ public sealed partial class MainForm
 
     private void btnSaveImage_Click(object? sender, EventArgs e)
     {
-        if (displayedImage is null)
+        if (currentProcessedImage is null)
         {
             MessageBox.Show(uiText.NoImageToSave, uiText.InfoCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
@@ -102,24 +101,52 @@ public sealed partial class MainForm
         }
 
         ImageFormat format = GetImageFormat(saveFileDialog.FileName);
-        displayedImage.Save(saveFileDialog.FileName, format);
+        currentProcessedImage.Save(saveFileDialog.FileName, format);
     }
 
-    private void SetDisplayedImage(Bitmap image)
+    private void SetSourceImage(Bitmap image)
     {
-        pictureBox.Image = null;
-        displayedImage?.Dispose();
-        displayedImage = image;
-        pictureBox.Image = displayedImage;
+        sourcePictureBox.Image = null;
+        sourceImage?.Dispose();
+        sourceImage = image;
+        sourcePictureBox.Image = sourceImage;
+    }
+
+    private void SetCurrentProcessedImage(Bitmap image, ProcessingInfo processingInfo)
+    {
+        previousPictureBox.Image = null;
+        previousProcessedImage?.Dispose();
+        previousProcessedImage = currentProcessedImage is null ? null : new Bitmap(currentProcessedImage);
+        previousPictureBox.Image = previousProcessedImage;
+        previousProcessingInfo = currentProcessingInfo;
+
+        currentPictureBox.Image = null;
+        currentProcessedImage?.Dispose();
+        currentProcessedImage = image;
+        currentPictureBox.Image = currentProcessedImage;
+        currentProcessingInfo = processingInfo;
+        UpdateProcessingInfo();
+    }
+
+    private void ClearProcessedImages()
+    {
+        previousPictureBox.Image = null;
+        currentPictureBox.Image = null;
+        previousProcessedImage?.Dispose();
+        currentProcessedImage?.Dispose();
+        previousProcessedImage = null;
+        currentProcessedImage = null;
+        previousProcessingInfo = null;
+        currentProcessingInfo = null;
     }
 
     private void ClearImages()
     {
-        pictureBox.Image = null;
-        displayedImage?.Dispose();
-        originalImage?.Dispose();
-        displayedImage = null;
-        originalImage = null;
+        sourcePictureBox.Image = null;
+        ClearProcessedImages();
+        sourceImage?.Dispose();
+        sourceImage = null;
+        UpdateProcessingInfo();
     }
 
     private static ImageFormat GetImageFormat(string fileName)
@@ -169,6 +196,78 @@ public sealed partial class MainForm
         };
     }
 
+    private ProcessingInfo BuildProcessingInfo()
+    {
+        ProcessingMode selectedMode = GetSelectedProcessingMode();
+        string methodName = cmbProcessingMode.Text;
+        string details = selectedMode switch
+        {
+            ProcessingMode.GlobalContrast => string.Format(
+                uiText.GlobalDetailsFormat,
+                numContrastFactor.Value),
+            ProcessingMode.LocalFragment => string.Format(
+                uiText.LocalDetailsFormat,
+                cmbLocalProcessor.Text,
+                numContrastFactor.Value,
+                numFragmentWidth.Value,
+                numFragmentHeight.Value,
+                GetLocalQDescription()),
+            ProcessingMode.LocalMeanTvContrast => string.Format(
+                uiText.LocalMeanTvDetailsFormat,
+                numContrastFactor.Value,
+                numFragmentWidth.Value,
+                numFragmentHeight.Value),
+            _ => string.Empty
+        };
+
+        return new ProcessingInfo(methodName, details, DateTime.Now);
+    }
+
+    private string GetLocalQDescription()
+    {
+        LocalFragmentProcessorKind selectedKind = GetSelectedLocalProcessorKind();
+        return selectedKind switch
+        {
+            LocalFragmentProcessorKind.Method3 => numBlendQ.Value.ToString("0.00"),
+            LocalFragmentProcessorKind.Method4 => uiText.AdaptiveQInfo,
+            _ => uiText.NotUsedInfo
+        };
+    }
+
+    private void UpdateProcessingInfo()
+    {
+        lblSourceInfo.Text = sourceImage is null
+            ? uiText.NoSourceImage
+            : string.Format(uiText.SourceImageInfoFormat, sourceImage.Width, sourceImage.Height);
+
+        if (previousProcessedImage is null || previousProcessingInfo is null)
+        {
+            lblPreviousInfo.Text = uiText.NoPreviousImage;
+            lblPreviousDetails.Text = string.Empty;
+        }
+        else
+        {
+            lblPreviousInfo.Text = string.Format(
+                uiText.PreviousImageInfoFormat,
+                previousProcessingInfo.MethodName,
+                previousProcessingInfo.AppliedAt.ToString("HH:mm:ss"));
+            lblPreviousDetails.Text = previousProcessingInfo.Details;
+        }
+
+        if (currentProcessedImage is null || currentProcessingInfo is null)
+        {
+            lblCurrentInfo.Text = uiText.NoCurrentImage;
+            lblCurrentDetails.Text = string.Empty;
+            return;
+        }
+
+        lblCurrentInfo.Text = string.Format(
+            uiText.CurrentImageInfoFormat,
+            currentProcessingInfo.MethodName,
+            currentProcessingInfo.AppliedAt.ToString("HH:mm:ss"));
+        lblCurrentDetails.Text = currentProcessingInfo.Details;
+    }
+
     private void UpdateParameterAvailability()
     {
         ProcessingMode selectedMode = GetSelectedProcessingMode();
@@ -207,6 +306,9 @@ public sealed partial class MainForm
         lblLocalProcessor.Text = uiText.LocalMethodLabel;
         lblFragmentWidth.Text = uiText.FragmentWidthLabel;
         lblFragmentHeight.Text = uiText.FragmentHeightLabel;
+        lblSourcePreview.Text = uiText.SourcePreviewTitle;
+        lblPreviousPreview.Text = uiText.PreviousPreviewTitle;
+        lblCurrentPreview.Text = uiText.CurrentPreviewTitle;
         chkUseMultithreading.Text = uiText.Multithreading;
 
         cmbLanguage.Items.Clear();
@@ -228,5 +330,6 @@ public sealed partial class MainForm
         cmbLocalProcessor.SelectedIndex = selectedMethodIndex;
 
         UpdateParameterAvailability();
+        UpdateProcessingInfo();
     }
 }

@@ -50,7 +50,21 @@ internal static class UiText
         InfoCaption = "Info",
         NotAvailableCaption = "Not available",
         LoadImageFirst = "Load an image first.",
-        NoImageToSave = "No image to save."
+        NoImageToSave = "No processed image to save.",
+        SourcePreviewTitle = "Source image",
+        PreviousPreviewTitle = "Previous result",
+        CurrentPreviewTitle = "Current result",
+        NoSourceImage = "No image loaded.",
+        NoPreviousImage = "No previous processed image.",
+        NoCurrentImage = "No current processed image.",
+        SourceImageInfoFormat = "Uploaded source: {0} x {1}px",
+        PreviousImageInfoFormat = "{0}, applied at {1}",
+        CurrentImageInfoFormat = "{0}, applied at {1}",
+        GlobalDetailsFormat = "Global grayscale TV-style contrast, sigma z = {0}",
+        LocalDetailsFormat = "{0}; sigma z = {1}; fragment = {2} x {3}; q = {4}",
+        LocalMeanTvDetailsFormat = "TV + local mean; sigma z = {0}; fragment = {1} x {2}",
+        AdaptiveQInfo = "adaptive",
+        NotUsedInfo = "not used"
     };
 
     private static readonly UiTextSet Russian = new()
@@ -63,11 +77,11 @@ internal static class UiText
         ApplyButton = "\u041F\u0440\u0438\u043C\u0435\u043D\u0438\u0442\u044C",
         SaveButton = "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
         ModeLabel = "\u0420\u0435\u0436\u0438\u043C:",
-        GlobalMode = "\u0413\u043B\u043E\u0431\u0430\u043B\u044C\u043D\u044B\u0439",
-        LocalMode = "\u041B\u043E\u043A\u0430\u043B\u044C\u043D\u044B\u0439",
-        LocalMeanTvMode = "\u0422\u0412 + \u043B\u043E\u043A. \u0441\u0440\u0435\u0434\u043D.",
-        ContrastLabelGlobal = "\u03C3z (\u0433\u043B\u043E\u0431.):",
-        ContrastLabelLocal = "\u03C3z (\u043B\u043E\u043A.):",
+        GlobalMode = "\u0422\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0439",
+        LocalMode = "\u041F\u043E \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442\u0430\u043C",
+        LocalMeanTvMode = "\u0422\u0435\u043B\u0435\u0432. + \u043B\u043E\u043A. \u0441\u0440\u0435\u0434\u043D.",
+        ContrastLabelGlobal = "\u03C3z (\u0422\u0412):",
+        ContrastLabelLocal = "\u03C3z (\u0444\u0440\u0430\u0433\u043C.):",
         LocalMethodLabel = "\u041C\u0435\u0442\u043E\u0434:",
         FragmentWidthLabel = "\u0428\u0438\u0440\u0438\u043D\u0430:",
         FragmentHeightLabel = "\u0412\u044B\u0441\u043E\u0442\u0430:",
@@ -86,7 +100,21 @@ internal static class UiText
         InfoCaption = "\u0418\u043D\u0444\u043E\u0440\u043C\u0430\u0446\u0438\u044F",
         NotAvailableCaption = "\u041D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E",
         LoadImageFirst = "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0435 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435.",
-        NoImageToSave = "\u041D\u0435\u0442 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u0434\u043B\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F."
+        NoImageToSave = "\u041D\u0435\u0442 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u043E\u0433\u043E \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F \u0434\u043B\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u044F.",
+        SourcePreviewTitle = "\u0418\u0441\u0445\u043E\u0434\u043D\u043E\u0435",
+        PreviousPreviewTitle = "\u041F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0438\u0439 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442",
+        CurrentPreviewTitle = "\u0422\u0435\u043A\u0443\u0449\u0438\u0439 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442",
+        NoSourceImage = "\u0418\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u0435 \u043D\u0435 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u043E.",
+        NoPreviousImage = "\u041D\u0435\u0442 \u043F\u0440\u0435\u0434\u044B\u0434\u0443\u0449\u0435\u0433\u043E \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u0430.",
+        NoCurrentImage = "\u041D\u0435\u0442 \u0442\u0435\u043A\u0443\u0449\u0435\u0433\u043E \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u0430.",
+        SourceImageInfoFormat = "\u0418\u0441\u0445\u043E\u0434\u043D\u043E\u0435: {0} x {1}px",
+        PreviousImageInfoFormat = "{0}, \u0432\u0440\u0435\u043C\u044F {1}",
+        CurrentImageInfoFormat = "{0}, \u0432\u0440\u0435\u043C\u044F {1}",
+        GlobalDetailsFormat = "\u0422\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0439 \u043A\u043E\u043D\u0442\u0440\u0430\u0441\u0442, sigma z = {0}",
+        LocalDetailsFormat = "{0}; sigma z = {1}; \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442 = {2} x {3}; q = {4}",
+        LocalMeanTvDetailsFormat = "\u0422\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0439 \u0441 \u043B\u043E\u043A. \u0441\u0440\u0435\u0434\u043D.; sigma z = {0}; \u0444\u0440\u0430\u0433\u043C\u0435\u043D\u0442 = {1} x {2}",
+        AdaptiveQInfo = "\u0430\u0434\u0430\u043F\u0442\u0438\u0432\u043D\u043E",
+        NotUsedInfo = "\u043D\u0435 \u0438\u0441\u043F."
     };
 
     internal static UiLanguage CurrentLanguage
@@ -132,4 +160,18 @@ internal sealed class UiTextSet
     internal required string NotAvailableCaption { get; init; }
     internal required string LoadImageFirst { get; init; }
     internal required string NoImageToSave { get; init; }
+    internal required string SourcePreviewTitle { get; init; }
+    internal required string PreviousPreviewTitle { get; init; }
+    internal required string CurrentPreviewTitle { get; init; }
+    internal required string NoSourceImage { get; init; }
+    internal required string NoPreviousImage { get; init; }
+    internal required string NoCurrentImage { get; init; }
+    internal required string SourceImageInfoFormat { get; init; }
+    internal required string PreviousImageInfoFormat { get; init; }
+    internal required string CurrentImageInfoFormat { get; init; }
+    internal required string GlobalDetailsFormat { get; init; }
+    internal required string LocalDetailsFormat { get; init; }
+    internal required string LocalMeanTvDetailsFormat { get; init; }
+    internal required string AdaptiveQInfo { get; init; }
+    internal required string NotUsedInfo { get; init; }
 }

@@ -21,7 +21,12 @@ public sealed partial class MainForm : Form
     private readonly FlowLayoutPanel actionRow;
     private readonly FlowLayoutPanel paramsRow;
     private readonly Panel imageCanvas;
-    private readonly Panel imageFrame;
+    private readonly TableLayoutPanel imageGrid;
+    private readonly Panel sourceImageFrame;
+    private readonly Panel previousImageFrame;
+    private readonly Panel currentImageFrame;
+    private readonly Panel previousInfoPanel;
+    private readonly Panel currentInfoPanel;
 
     private readonly Button btnLoadImage;
     private readonly Button btnApplyContrast;
@@ -41,11 +46,24 @@ public sealed partial class MainForm : Form
     private readonly Label lblBlendQ;
     private readonly CheckBox chkUseMultithreading;
     private readonly ComboBox cmbLanguage;
-    private readonly PictureBox pictureBox;
+    private readonly PictureBox sourcePictureBox;
+    private readonly PictureBox previousPictureBox;
+    private readonly PictureBox currentPictureBox;
+    private readonly Label lblSourcePreview;
+    private readonly Label lblPreviousPreview;
+    private readonly Label lblCurrentPreview;
+    private readonly Label lblSourceInfo;
+    private readonly Label lblPreviousInfo;
+    private readonly Label lblPreviousDetails;
+    private readonly Label lblCurrentInfo;
+    private readonly Label lblCurrentDetails;
     private readonly Dictionary<Button, Color> buttonBaseColors;
 
-    private Bitmap? originalImage;
-    private Bitmap? displayedImage;
+    private Bitmap? sourceImage;
+    private Bitmap? previousProcessedImage;
+    private Bitmap? currentProcessedImage;
+    private ProcessingInfo? previousProcessingInfo;
+    private ProcessingInfo? currentProcessingInfo;
 
     public MainForm()
     {
@@ -149,7 +167,7 @@ public sealed partial class MainForm : Form
         cmbProcessingMode = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Width = 160,
+            Width = 190,
             Height = 30,
             Margin = new Padding(0, 7, 18, 0),
             FlatStyle = FlatStyle.Flat
@@ -288,15 +306,86 @@ public sealed partial class MainForm : Form
             Padding = new Padding(10)
         };
 
-        imageFrame = new Panel();
-        imageCanvas.Controls.Add(imageFrame);
-
-        pictureBox = new PictureBox
+        imageGrid = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            SizeMode = PictureBoxSizeMode.Zoom
+            ColumnCount = 3,
+            RowCount = 3,
+            BackColor = Color.Transparent
         };
-        imageFrame.Controls.Add(pictureBox);
+        imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
+        imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
+        imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334f));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+
+        lblSourcePreview = CreatePreviewTitleLabel();
+        lblPreviousPreview = CreatePreviewTitleLabel();
+        lblCurrentPreview = CreatePreviewTitleLabel();
+
+        sourceImageFrame = CreateImageFrame();
+        previousImageFrame = CreateImageFrame();
+        currentImageFrame = CreateImageFrame();
+
+        sourcePictureBox = CreatePreviewPictureBox();
+        previousPictureBox = CreatePreviewPictureBox();
+        currentPictureBox = CreatePreviewPictureBox();
+
+        sourceImageFrame.Controls.Add(sourcePictureBox);
+        previousImageFrame.Controls.Add(previousPictureBox);
+        currentImageFrame.Controls.Add(currentPictureBox);
+
+        lblSourceInfo = CreatePreviewInfoLabel();
+        previousInfoPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(8, 5, 8, 5),
+            Margin = new Padding(6)
+        };
+
+        lblPreviousInfo = CreatePreviewInfoLabel();
+        lblPreviousInfo.Dock = DockStyle.Top;
+        lblPreviousInfo.Height = 22;
+        lblPreviousInfo.Margin = Padding.Empty;
+
+        lblPreviousDetails = CreatePreviewInfoLabel();
+        lblPreviousDetails.Dock = DockStyle.Fill;
+        lblPreviousDetails.Margin = Padding.Empty;
+
+        previousInfoPanel.Controls.Add(lblPreviousDetails);
+        previousInfoPanel.Controls.Add(lblPreviousInfo);
+
+        currentInfoPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Padding(8, 5, 8, 5),
+            Margin = new Padding(6)
+        };
+
+        lblCurrentInfo = CreatePreviewInfoLabel();
+        lblCurrentInfo.Dock = DockStyle.Top;
+        lblCurrentInfo.Height = 22;
+        lblCurrentInfo.Margin = Padding.Empty;
+
+        lblCurrentDetails = CreatePreviewInfoLabel();
+        lblCurrentDetails.Dock = DockStyle.Fill;
+        lblCurrentDetails.Margin = Padding.Empty;
+
+        currentInfoPanel.Controls.Add(lblCurrentDetails);
+        currentInfoPanel.Controls.Add(lblCurrentInfo);
+
+        imageGrid.Controls.Add(lblSourcePreview, 0, 0);
+        imageGrid.Controls.Add(lblPreviousPreview, 1, 0);
+        imageGrid.Controls.Add(lblCurrentPreview, 2, 0);
+        imageGrid.Controls.Add(sourceImageFrame, 0, 1);
+        imageGrid.Controls.Add(previousImageFrame, 1, 1);
+        imageGrid.Controls.Add(currentImageFrame, 2, 1);
+        imageGrid.Controls.Add(lblSourceInfo, 0, 2);
+        imageGrid.Controls.Add(previousInfoPanel, 1, 2);
+        imageGrid.Controls.Add(currentInfoPanel, 2, 2);
+
+        imageCanvas.Controls.Add(imageGrid);
 
         Controls.Add(imageCanvas);
         Controls.Add(topDivider);
@@ -309,10 +398,18 @@ public sealed partial class MainForm : Form
         StyleActionButton(btnSaveImage);
 
         imageCanvas.Resize += (_, _) => UpdateImageViewportBounds();
-        imageFrame.Resize += (_, _) => ApplyRoundedCorners(imageFrame, 16);
+        sourceImageFrame.Resize += (_, _) => ApplyRoundedCorners(sourceImageFrame, 16);
+        previousImageFrame.Resize += (_, _) => ApplyRoundedCorners(previousImageFrame, 16);
+        currentImageFrame.Resize += (_, _) => ApplyRoundedCorners(currentImageFrame, 16);
+        previousInfoPanel.Resize += (_, _) => ApplyRoundedCorners(previousInfoPanel, 10);
+        currentInfoPanel.Resize += (_, _) => ApplyRoundedCorners(currentInfoPanel, 10);
 
         UpdateImageViewportBounds();
-        ApplyRoundedCorners(imageFrame, 16);
+        ApplyRoundedCorners(sourceImageFrame, 16);
+        ApplyRoundedCorners(previousImageFrame, 16);
+        ApplyRoundedCorners(currentImageFrame, 16);
+        ApplyRoundedCorners(previousInfoPanel, 10);
+        ApplyRoundedCorners(currentInfoPanel, 10);
         ApplyTheme();
         ApplyLocalizedText();
         UpdateParameterAvailability();
