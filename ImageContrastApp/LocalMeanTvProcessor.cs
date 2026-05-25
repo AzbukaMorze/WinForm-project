@@ -1,11 +1,18 @@
 using System;
 using System.Drawing;
+using System.Threading.Tasks;
 
 namespace ImageContrastApp;
 
 internal static class LocalMeanTvProcessor
 {
-    internal static Bitmap AdjustContrast(Bitmap image, float targetStandardDeviation, int windowWidth, int windowHeight)
+    internal static Bitmap AdjustContrast(
+        Bitmap image,
+        float targetStandardDeviation,
+        int windowWidth,
+        int windowHeight,
+        bool useMultithreading,
+        int maxDegreeOfParallelism)
     {
         ArgumentNullException.ThrowIfNull(image);
 
@@ -22,19 +29,66 @@ internal static class LocalMeanTvProcessor
             ? (targetStandardDeviation / globalStandardDeviation) - 1f
             : 0f;
 
-        for (int y = 0; y < source.Height; y++)
+        if (useMultithreading)
         {
-            for (int x = 0; x < source.Width; x++)
-            {
-                FragmentBounds bounds = CreateBounds(source, x, y, windowWidth, windowHeight);
-                float localMean = ComputeLocalMean(source, bounds);
-                float sourceBrightness = source.GetBrightness(x, y);
-                float transformed = sourceBrightness + (contrastCoefficient * (sourceBrightness - localMean));
-                result[(y * source.Width) + x] = LocalFragmentMath.RoundClamp(transformed);
-            }
+            ProcessParallel(source, result, contrastCoefficient, windowWidth, windowHeight, maxDegreeOfParallelism);
+        }
+        else
+        {
+            ProcessSequential(source, result, contrastCoefficient, windowWidth, windowHeight);
         }
 
         return source.ToBitmap(result);
+    }
+
+    private static void ProcessSequential(
+        GrayImageBuffer source,
+        byte[] result,
+        float contrastCoefficient,
+        int windowWidth,
+        int windowHeight)
+    {
+        for (int y = 0; y < source.Height; y++)
+        {
+            ProcessRow(source, result, contrastCoefficient, windowWidth, windowHeight, y);
+        }
+    }
+
+    private static void ProcessParallel(
+        GrayImageBuffer source,
+        byte[] result,
+        float contrastCoefficient,
+        int windowWidth,
+        int windowHeight,
+        int maxDegreeOfParallelism)
+    {
+        ParallelOptions options = new()
+        {
+            MaxDegreeOfParallelism = Math.Max(1, maxDegreeOfParallelism)
+        };
+
+        Parallel.For(0, source.Height, options, y =>
+        {
+            ProcessRow(source, result, contrastCoefficient, windowWidth, windowHeight, y);
+        });
+    }
+
+    private static void ProcessRow(
+        GrayImageBuffer source,
+        byte[] result,
+        float contrastCoefficient,
+        int windowWidth,
+        int windowHeight,
+        int y)
+    {
+        for (int x = 0; x < source.Width; x++)
+        {
+            FragmentBounds bounds = CreateBounds(source, x, y, windowWidth, windowHeight);
+            float localMean = ComputeLocalMean(source, bounds);
+            float sourceBrightness = source.GetBrightness(x, y);
+            float transformed = sourceBrightness + (contrastCoefficient * (sourceBrightness - localMean));
+            result[(y * source.Width) + x] = LocalFragmentMath.RoundClamp(transformed);
+        }
     }
 
     private static FragmentBounds CreateBounds(GrayImageBuffer source, int x, int y, int windowWidth, int windowHeight)

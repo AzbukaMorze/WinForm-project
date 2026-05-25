@@ -90,9 +90,9 @@ public sealed partial class MainForm
             imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
             imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
             imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334f));
-            imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-            imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
             SetPreviewCellPositionsForWideLayout();
         }
 
@@ -103,13 +103,13 @@ public sealed partial class MainForm
     {
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.333f));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.333f));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.334f));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
 
         SetCell(lblSourcePreview, 0, 0);
         SetCell(sourceImageFrame, 0, 1);

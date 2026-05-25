@@ -68,7 +68,9 @@ public sealed partial class MainForm
                     sourceImage,
                     (float)numContrastFactor.Value,
                     (int)numFragmentWidth.Value,
-                    (int)numFragmentHeight.Value),
+                    (int)numFragmentHeight.Value,
+                    chkUseMultithreading.Checked,
+                    Environment.ProcessorCount),
                 _ => throw new InvalidOperationException("Unknown processing mode.")
             };
 
@@ -109,6 +111,7 @@ public sealed partial class MainForm
         sourcePictureBox.Image = null;
         sourceImage?.Dispose();
         sourceImage = image;
+        sourceStats = ImageBrightnessStats.FromBitmap(sourceImage);
         sourcePictureBox.Image = sourceImage;
     }
 
@@ -118,11 +121,13 @@ public sealed partial class MainForm
         previousProcessedImage?.Dispose();
         previousProcessedImage = currentProcessedImage is null ? null : new Bitmap(currentProcessedImage);
         previousPictureBox.Image = previousProcessedImage;
+        previousStats = currentStats;
         previousProcessingInfo = currentProcessingInfo;
 
         currentPictureBox.Image = null;
         currentProcessedImage?.Dispose();
         currentProcessedImage = image;
+        currentStats = ImageBrightnessStats.FromBitmap(currentProcessedImage);
         currentPictureBox.Image = currentProcessedImage;
         currentProcessingInfo = processingInfo;
         UpdateProcessingInfo();
@@ -136,6 +141,8 @@ public sealed partial class MainForm
         currentProcessedImage?.Dispose();
         previousProcessedImage = null;
         currentProcessedImage = null;
+        previousStats = null;
+        currentStats = null;
         previousProcessingInfo = null;
         currentProcessingInfo = null;
     }
@@ -146,6 +153,7 @@ public sealed partial class MainForm
         ClearProcessedImages();
         sourceImage?.Dispose();
         sourceImage = null;
+        sourceStats = null;
         UpdateProcessingInfo();
     }
 
@@ -236,11 +244,13 @@ public sealed partial class MainForm
 
     private void UpdateProcessingInfo()
     {
-        lblSourceInfo.Text = sourceImage is null
+        lblSourceInfo.Text = sourceImage is null || sourceStats is null
             ? uiText.NoSourceImage
-            : string.Format(uiText.SourceImageInfoFormat, sourceImage.Width, sourceImage.Height);
+            : string.Format(uiText.SourceImageInfoFormat, sourceImage.Width, sourceImage.Height)
+                + Environment.NewLine
+                + FormatBrightnessStats(sourceStats.Value);
 
-        if (previousProcessedImage is null || previousProcessingInfo is null)
+        if (previousProcessedImage is null || previousProcessingInfo is null || previousStats is null)
         {
             lblPreviousInfo.Text = uiText.NoPreviousImage;
             lblPreviousDetails.Text = string.Empty;
@@ -251,10 +261,12 @@ public sealed partial class MainForm
                 uiText.PreviousImageInfoFormat,
                 previousProcessingInfo.MethodName,
                 previousProcessingInfo.AppliedAt.ToString("HH:mm:ss"));
-            lblPreviousDetails.Text = previousProcessingInfo.Details;
+            lblPreviousDetails.Text = previousProcessingInfo.Details
+                + Environment.NewLine
+                + FormatBrightnessStats(previousStats.Value);
         }
 
-        if (currentProcessedImage is null || currentProcessingInfo is null)
+        if (currentProcessedImage is null || currentProcessingInfo is null || currentStats is null)
         {
             lblCurrentInfo.Text = uiText.NoCurrentImage;
             lblCurrentDetails.Text = string.Empty;
@@ -265,7 +277,21 @@ public sealed partial class MainForm
             uiText.CurrentImageInfoFormat,
             currentProcessingInfo.MethodName,
             currentProcessingInfo.AppliedAt.ToString("HH:mm:ss"));
-        lblCurrentDetails.Text = currentProcessingInfo.Details;
+        lblCurrentDetails.Text = currentProcessingInfo.Details
+            + Environment.NewLine
+            + FormatBrightnessStats(currentStats.Value);
+    }
+
+    private string FormatBrightnessStats(ImageBrightnessStats stats)
+    {
+        return string.Format(
+            uiText.BrightnessStatsFormat,
+            stats.Mean,
+            stats.StandardDeviation,
+            stats.Minimum,
+            stats.Maximum,
+            stats.BlackClipPercent,
+            stats.WhiteClipPercent);
     }
 
     private void UpdateParameterAvailability()
@@ -284,7 +310,7 @@ public sealed partial class MainForm
         numFragmentHeight.Enabled = usesWindow;
         numBlendQ.Visible = useManualQ;
         numBlendQ.Enabled = useManualQ;
-        chkUseMultithreading.Enabled = isLocalMode;
+        chkUseMultithreading.Enabled = usesWindow;
         lblLocalProcessor.Enabled = isLocalMode;
         lblFragmentWidth.Enabled = usesWindow;
         lblFragmentHeight.Enabled = usesWindow;

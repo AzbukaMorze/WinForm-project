@@ -62,15 +62,18 @@ public sealed partial class MainForm : Form
     private Bitmap? sourceImage;
     private Bitmap? previousProcessedImage;
     private Bitmap? currentProcessedImage;
+    private ImageBrightnessStats? sourceStats;
+    private ImageBrightnessStats? previousStats;
+    private ImageBrightnessStats? currentStats;
     private ProcessingInfo? previousProcessingInfo;
     private ProcessingInfo? currentProcessingInfo;
 
     public MainForm()
     {
         Text = uiText.FormTitle;
-        Width = 1000;
-        Height = 700;
-        MinimumSize = new Size(900, 620);
+        Width = 1800;
+        Height = 1080;
+        MinimumSize = new Size(Width, Height);
         StartPosition = FormStartPosition.CenterScreen;
 
         topPanel = new Panel
@@ -318,7 +321,7 @@ public sealed partial class MainForm : Form
         imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334f));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 78));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
 
         lblSourcePreview = CreatePreviewTitleLabel();
         lblPreviousPreview = CreatePreviewTitleLabel();
