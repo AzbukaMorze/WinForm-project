@@ -63,7 +63,7 @@ internal static class UiText
         GlobalDetailsFormat = "target sigma z = {0}",
         LocalDetailsFormat = "fragment method: {0}; target sigma z = {1}; window = {2} x {3}; q = {4}",
         LocalMeanTvDetailsFormat = "target sigma z = {0}; window = {1} x {2}",
-        BrightnessStatsFormat = "brightness avg={0:0.0}; brightness st.dev.={1:0.0}; range={2}-{3}; clipped 0/255={4:0.00}%/{5:0.00}%",
+        BrightnessStatsFormat = "brightness avg={0:0.0}; brightness st.dev.={1:0.0}; range={2}-{3}",
         AdaptiveQInfo = "adaptive",
         NotUsedInfo = "not used"
     };
@@ -114,7 +114,7 @@ internal static class UiText
         GlobalDetailsFormat = "\u0446\u0435\u043B\u0435\u0432\u043E\u0435 sigma z = {0}",
         LocalDetailsFormat = "\u043C\u0435\u0442\u043E\u0434 \u0444\u0440\u0430\u0433\u043C.: {0}; \u0446\u0435\u043B\u0435\u0432\u043E\u0435 sigma z = {1}; \u043E\u043A\u043D\u043E = {2} x {3}; q = {4}",
         LocalMeanTvDetailsFormat = "\u0446\u0435\u043B\u0435\u0432\u043E\u0435 sigma z = {0}; \u043E\u043A\u043D\u043E = {1} x {2}",
-        BrightnessStatsFormat = "\u044F\u0440\u043A. \u0441\u0440\u0435\u0434.={0:0.0}; \u0421\u041A\u041E \u044F\u0440\u043A.={1:0.0}; \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D={2}-{3}; \u043A\u043B\u0438\u043F 0/255={4:0.00}%/{5:0.00}%",
+        BrightnessStatsFormat = "\u044F\u0440\u043A. \u0441\u0440\u0435\u0434.={0:0.0}; \u0421\u041A\u041E \u044F\u0440\u043A.={1:0.0}; \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D={2}-{3}",
         AdaptiveQInfo = "\u0430\u0434\u0430\u043F\u0442\u0438\u0432\u043D\u043E",
         NotUsedInfo = "\u043D\u0435 \u0438\u0441\u043F."
     };
