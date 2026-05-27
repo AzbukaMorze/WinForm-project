@@ -16,6 +16,12 @@ public sealed partial class MainForm : Form
         LocalMeanTvContrast
     }
 
+    private enum AppTheme
+    {
+        Light,
+        Dark
+    }
+
     private readonly Panel topPanel;
     private readonly Panel topDivider;
     private readonly FlowLayoutPanel actionRow;
@@ -39,6 +45,7 @@ public sealed partial class MainForm : Form
     private readonly NumericUpDown numBlendQ;
     private readonly Label lblContrast;
     private readonly Label lblLanguage;
+    private readonly Label lblTheme;
     private readonly Label lblProcessingMode;
     private readonly Label lblLocalProcessor;
     private readonly Label lblFragmentWidth;
@@ -46,6 +53,7 @@ public sealed partial class MainForm : Form
     private readonly Label lblBlendQ;
     private readonly CheckBox chkUseMultithreading;
     private readonly ComboBox cmbLanguage;
+    private readonly ComboBox cmbTheme;
     private readonly PictureBox sourcePictureBox;
     private readonly PictureBox previousPictureBox;
     private readonly PictureBox currentPictureBox;
@@ -67,6 +75,7 @@ public sealed partial class MainForm : Form
     private ImageBrightnessStats? currentStats;
     private ProcessingInfo? previousProcessingInfo;
     private ProcessingInfo? currentProcessingInfo;
+    private AppTheme currentTheme = AppTheme.Light;
 
     public MainForm()
     {
@@ -149,6 +158,26 @@ public sealed partial class MainForm : Form
 
         actionRow.Controls.Add(lblLanguage);
         actionRow.Controls.Add(cmbLanguage);
+
+        lblTheme = new Label
+        {
+            Text = uiText.ThemeLabel,
+            AutoSize = true,
+            Margin = new Padding(20, 12, 8, 0)
+        };
+
+        cmbTheme = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Width = 108,
+            Height = 30,
+            Margin = new Padding(0, 7, 0, 0),
+            FlatStyle = FlatStyle.Flat
+        };
+        cmbTheme.SelectedIndexChanged += cmbTheme_SelectedIndexChanged;
+
+        actionRow.Controls.Add(lblTheme);
+        actionRow.Controls.Add(cmbTheme);
 
         paramsRow = new FlowLayoutPanel
         {
@@ -321,7 +350,7 @@ public sealed partial class MainForm : Form
         imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334f));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, ResultInfoRowHeight));
 
         lblSourcePreview = CreatePreviewTitleLabel();
         lblPreviousPreview = CreatePreviewTitleLabel();

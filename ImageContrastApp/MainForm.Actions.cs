@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -21,6 +22,21 @@ public sealed partial class MainForm
 
         UiText.CurrentLanguage = selectedLanguage;
         ApplyLocalizedText();
+    }
+
+    private void cmbTheme_SelectedIndexChanged(object? sender, EventArgs e)
+    {
+        AppTheme selectedTheme = cmbTheme.SelectedIndex == 1
+            ? AppTheme.Dark
+            : AppTheme.Light;
+
+        if (currentTheme == selectedTheme)
+        {
+            return;
+        }
+
+        currentTheme = selectedTheme;
+        ApplyTheme();
     }
 
     protected override void OnFormClosed(FormClosedEventArgs e)
@@ -60,6 +76,7 @@ public sealed partial class MainForm
 
         try
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
             Bitmap adjusted = GetSelectedProcessingMode() switch
             {
                 ProcessingMode.GlobalContrast => ImageContrastProcessor.AdjustGlobalContrast(sourceImage, (float)numContrastFactor.Value),
@@ -73,8 +90,9 @@ public sealed partial class MainForm
                     Environment.ProcessorCount),
                 _ => throw new InvalidOperationException("Unknown processing mode.")
             };
+            stopwatch.Stop();
 
-            SetCurrentProcessedImage(adjusted, BuildProcessingInfo());
+            SetCurrentProcessedImage(adjusted, BuildProcessingInfo(stopwatch.Elapsed));
         }
         catch (NotImplementedException ex)
         {
@@ -204,7 +222,7 @@ public sealed partial class MainForm
         };
     }
 
-    private ProcessingInfo BuildProcessingInfo()
+    private ProcessingInfo BuildProcessingInfo(TimeSpan elapsedTime)
     {
         ProcessingMode selectedMode = GetSelectedProcessingMode();
         string methodName = cmbProcessingMode.Text;
@@ -228,7 +246,7 @@ public sealed partial class MainForm
             _ => string.Empty
         };
 
-        return new ProcessingInfo(methodName, details, DateTime.Now);
+        return new ProcessingInfo(methodName, details, DateTime.Now, elapsedTime);
     }
 
     private string GetLocalQDescription()
@@ -263,6 +281,8 @@ public sealed partial class MainForm
                 previousProcessingInfo.AppliedAt.ToString("HH:mm:ss"));
             lblPreviousDetails.Text = previousProcessingInfo.Details
                 + Environment.NewLine
+                + FormatElapsedTime(previousProcessingInfo.ElapsedTime)
+                + Environment.NewLine
                 + FormatBrightnessStats(previousStats.Value);
         }
 
@@ -279,7 +299,14 @@ public sealed partial class MainForm
             currentProcessingInfo.AppliedAt.ToString("HH:mm:ss"));
         lblCurrentDetails.Text = currentProcessingInfo.Details
             + Environment.NewLine
+            + FormatElapsedTime(currentProcessingInfo.ElapsedTime)
+            + Environment.NewLine
             + FormatBrightnessStats(currentStats.Value);
+    }
+
+    private string FormatElapsedTime(TimeSpan elapsedTime)
+    {
+        return string.Format(uiText.ProcessingTimeFormat, elapsedTime.TotalMilliseconds);
     }
 
     private string FormatBrightnessStats(ImageBrightnessStats stats)
@@ -328,6 +355,7 @@ public sealed partial class MainForm
         btnApplyContrast.Text = uiText.ApplyButton;
         btnSaveImage.Text = uiText.SaveButton;
         lblLanguage.Text = uiText.LanguageLabel;
+        lblTheme.Text = uiText.ThemeLabel;
         lblProcessingMode.Text = uiText.ModeLabel;
         lblLocalProcessor.Text = uiText.LocalMethodLabel;
         lblFragmentWidth.Text = uiText.FragmentWidthLabel;
@@ -341,6 +369,11 @@ public sealed partial class MainForm
         cmbLanguage.Items.Add(uiText.RussianLanguage);
         cmbLanguage.Items.Add(uiText.EnglishLanguage);
         cmbLanguage.SelectedIndex = UiText.CurrentLanguage == UiLanguage.Russian ? 0 : 1;
+
+        cmbTheme.Items.Clear();
+        cmbTheme.Items.Add(uiText.LightTheme);
+        cmbTheme.Items.Add(uiText.DarkTheme);
+        cmbTheme.SelectedIndex = currentTheme == AppTheme.Light ? 0 : 1;
 
         cmbProcessingMode.Items.Clear();
         cmbProcessingMode.Items.Add(uiText.GlobalMode);

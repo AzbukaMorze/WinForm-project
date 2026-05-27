@@ -8,60 +8,102 @@ namespace ImageContrastApp;
 public sealed partial class MainForm
 {
     private const int CornerRadius = 12;
+    private const int SourceInfoRowHeight = 78;
+    private const int ResultInfoRowHeight = 126;
 
     private void ApplyTheme()
     {
-        Color formBack = Color.FromArgb(27, 32, 40);
-        Color panelBack = Color.FromArgb(33, 39, 48);
-        Color dividerBack = Color.FromArgb(60, 69, 83);
-        Color canvasBack = Color.FromArgb(27, 32, 40);
-        Color frameBack = Color.FromArgb(42, 48, 58);
-        Color textColor = Color.FromArgb(224, 230, 238);
-        Color inputBack = Color.FromArgb(48, 56, 67);
-        Color inputText = Color.FromArgb(232, 237, 243);
+        ThemePalette palette = currentTheme == AppTheme.Light
+            ? ThemePalette.Light
+            : ThemePalette.Dark;
 
-        BackColor = formBack;
-        topPanel.BackColor = panelBack;
-        topDivider.BackColor = dividerBack;
-        imageCanvas.BackColor = canvasBack;
-        sourceImageFrame.BackColor = frameBack;
-        previousImageFrame.BackColor = frameBack;
-        currentImageFrame.BackColor = frameBack;
-        previousInfoPanel.BackColor = frameBack;
-        currentInfoPanel.BackColor = frameBack;
-        sourcePictureBox.BackColor = frameBack;
-        previousPictureBox.BackColor = frameBack;
-        currentPictureBox.BackColor = frameBack;
+        BackColor = palette.FormBack;
+        topPanel.BackColor = palette.PanelBack;
+        topDivider.BackColor = palette.DividerBack;
+        imageCanvas.BackColor = palette.CanvasBack;
+        sourceImageFrame.BackColor = palette.FrameBack;
+        previousImageFrame.BackColor = palette.FrameBack;
+        currentImageFrame.BackColor = palette.FrameBack;
+        previousInfoPanel.BackColor = palette.InfoBack;
+        currentInfoPanel.BackColor = palette.InfoBack;
+        sourcePictureBox.BackColor = palette.FrameBack;
+        previousPictureBox.BackColor = palette.FrameBack;
+        currentPictureBox.BackColor = palette.FrameBack;
 
-        lblProcessingMode.ForeColor = textColor;
-        lblContrast.ForeColor = textColor;
-        lblLanguage.ForeColor = textColor;
-        lblLocalProcessor.ForeColor = textColor;
-        lblFragmentWidth.ForeColor = textColor;
-        lblFragmentHeight.ForeColor = textColor;
-        lblBlendQ.ForeColor = textColor;
-        lblSourcePreview.ForeColor = textColor;
-        lblPreviousPreview.ForeColor = textColor;
-        lblCurrentPreview.ForeColor = textColor;
-        lblSourceInfo.ForeColor = textColor;
-        lblPreviousInfo.ForeColor = textColor;
-        lblPreviousDetails.ForeColor = textColor;
-        lblCurrentInfo.ForeColor = textColor;
-        lblCurrentDetails.ForeColor = textColor;
-        chkUseMultithreading.ForeColor = textColor;
-        chkUseMultithreading.BackColor = panelBack;
+        lblProcessingMode.ForeColor = palette.TextColor;
+        lblContrast.ForeColor = palette.TextColor;
+        lblLanguage.ForeColor = palette.TextColor;
+        lblTheme.ForeColor = palette.TextColor;
+        lblLocalProcessor.ForeColor = palette.TextColor;
+        lblFragmentWidth.ForeColor = palette.TextColor;
+        lblFragmentHeight.ForeColor = palette.TextColor;
+        lblBlendQ.ForeColor = palette.TextColor;
+        lblSourcePreview.ForeColor = palette.TextColor;
+        lblPreviousPreview.ForeColor = palette.TextColor;
+        lblCurrentPreview.ForeColor = palette.TextColor;
+        lblSourceInfo.ForeColor = palette.TextColor;
+        lblPreviousInfo.ForeColor = palette.TextColor;
+        lblPreviousDetails.ForeColor = palette.TextColor;
+        lblCurrentInfo.ForeColor = palette.TextColor;
+        lblCurrentDetails.ForeColor = palette.TextColor;
+        chkUseMultithreading.ForeColor = palette.TextColor;
+        chkUseMultithreading.BackColor = palette.PanelBack;
 
-        StyleComboControl(cmbProcessingMode, inputBack, inputText);
-        StyleComboControl(cmbLanguage, inputBack, inputText);
-        StyleComboControl(cmbLocalProcessor, inputBack, inputText);
-        StyleNumericControl(numContrastFactor, inputBack, inputText);
-        StyleNumericControl(numFragmentWidth, inputBack, inputText);
-        StyleNumericControl(numFragmentHeight, inputBack, inputText);
-        StyleNumericControl(numBlendQ, inputBack, inputText);
+        StyleComboControl(cmbProcessingMode, palette.InputBack, palette.InputText);
+        StyleComboControl(cmbLanguage, palette.InputBack, palette.InputText);
+        StyleComboControl(cmbTheme, palette.InputBack, palette.InputText);
+        StyleComboControl(cmbLocalProcessor, palette.InputBack, palette.InputText);
+        StyleNumericControl(numContrastFactor, palette.InputBack, palette.InputText);
+        StyleNumericControl(numFragmentWidth, palette.InputBack, palette.InputText);
+        StyleNumericControl(numFragmentHeight, palette.InputBack, palette.InputText);
+        StyleNumericControl(numBlendQ, palette.InputBack, palette.InputText);
 
-        SetButtonBaseColor(btnLoadImage, Color.FromArgb(85, 130, 242));
-        SetButtonBaseColor(btnApplyContrast, Color.FromArgb(36, 180, 142));
-        SetButtonBaseColor(btnSaveImage, Color.FromArgb(118, 130, 145));
+        SetButtonBaseColor(btnLoadImage, palette.LoadButtonBack);
+        SetButtonBaseColor(btnApplyContrast, palette.ApplyButtonBack);
+        SetButtonBaseColor(btnSaveImage, palette.SaveButtonBack);
+    }
+
+    private sealed record ThemePalette(
+        Color FormBack,
+        Color PanelBack,
+        Color DividerBack,
+        Color CanvasBack,
+        Color FrameBack,
+        Color InfoBack,
+        Color TextColor,
+        Color InputBack,
+        Color InputText,
+        Color LoadButtonBack,
+        Color ApplyButtonBack,
+        Color SaveButtonBack)
+    {
+        internal static readonly ThemePalette Light = new(
+            Color.FromArgb(238, 243, 248),
+            Color.FromArgb(250, 247, 240),
+            Color.FromArgb(197, 207, 219),
+            Color.FromArgb(226, 235, 244),
+            Color.FromArgb(250, 252, 253),
+            Color.FromArgb(244, 248, 238),
+            Color.FromArgb(35, 45, 59),
+            Color.FromArgb(252, 253, 254),
+            Color.FromArgb(31, 42, 56),
+            Color.FromArgb(50, 105, 196),
+            Color.FromArgb(22, 132, 106),
+            Color.FromArgb(104, 113, 128));
+
+        internal static readonly ThemePalette Dark = new(
+            Color.FromArgb(27, 32, 40),
+            Color.FromArgb(33, 39, 48),
+            Color.FromArgb(60, 69, 83),
+            Color.FromArgb(27, 32, 40),
+            Color.FromArgb(42, 48, 58),
+            Color.FromArgb(42, 48, 58),
+            Color.FromArgb(224, 230, 238),
+            Color.FromArgb(48, 56, 67),
+            Color.FromArgb(232, 237, 243),
+            Color.FromArgb(85, 130, 242),
+            Color.FromArgb(36, 180, 142),
+            Color.FromArgb(118, 130, 145));
     }
 
     private void UpdateImageViewportBounds()
@@ -90,9 +132,9 @@ public sealed partial class MainForm
             imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
             imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
             imageGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.334f));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+            imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, ResultInfoRowHeight));
             SetPreviewCellPositionsForWideLayout();
         }
 
@@ -103,13 +145,13 @@ public sealed partial class MainForm
     {
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.333f));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, SourceInfoRowHeight));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.333f));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, ResultInfoRowHeight));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));
         imageGrid.RowStyles.Add(new RowStyle(SizeType.Percent, 33.334f));
-        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+        imageGrid.RowStyles.Add(new RowStyle(SizeType.Absolute, ResultInfoRowHeight));
 
         SetCell(lblSourcePreview, 0, 0);
         SetCell(sourceImageFrame, 0, 1);

@@ -21,6 +21,9 @@ internal static class UiText
     {
         FormTitle = "Image Contrast Processor",
         LanguageLabel = "Language:",
+        ThemeLabel = "Theme:",
+        LightTheme = "Light",
+        DarkTheme = "Dark",
         RussianLanguage = "Russian",
         EnglishLanguage = "English",
         LoadButton = "Load",
@@ -63,6 +66,7 @@ internal static class UiText
         GlobalDetailsFormat = "target sigma z = {0}",
         LocalDetailsFormat = "fragment method: {0}; target sigma z = {1}; window = {2} x {3}; q = {4}",
         LocalMeanTvDetailsFormat = "target sigma z = {0}; window = {1} x {2}",
+        ProcessingTimeFormat = "processing time = {0:0.###} ms",
         BrightnessStatsFormat = "brightness avg={0:0.0}; brightness st.dev.={1:0.0}; range={2}-{3}",
         AdaptiveQInfo = "adaptive",
         NotUsedInfo = "not used"
@@ -72,6 +76,9 @@ internal static class UiText
     {
         FormTitle = "\u041E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0430 \u043A\u043E\u043D\u0442\u0440\u0430\u0441\u0442\u0430 \u0438\u0437\u043E\u0431\u0440\u0430\u0436\u0435\u043D\u0438\u044F",
         LanguageLabel = "\u042F\u0437\u044B\u043A:",
+        ThemeLabel = "\u0422\u0435\u043C\u0430:",
+        LightTheme = "\u0421\u0432\u0435\u0442\u043B\u0430\u044F",
+        DarkTheme = "\u0422\u0435\u043C\u043D\u0430\u044F",
         RussianLanguage = "\u0420\u0443\u0441\u0441\u043A\u0438\u0439",
         EnglishLanguage = "English",
         LoadButton = "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C",
@@ -114,6 +121,7 @@ internal static class UiText
         GlobalDetailsFormat = "\u0446\u0435\u043B\u0435\u0432\u043E\u0435 sigma z = {0}",
         LocalDetailsFormat = "\u043C\u0435\u0442\u043E\u0434 \u0444\u0440\u0430\u0433\u043C.: {0}; \u0446\u0435\u043B\u0435\u0432\u043E\u0435 sigma z = {1}; \u043E\u043A\u043D\u043E = {2} x {3}; q = {4}",
         LocalMeanTvDetailsFormat = "\u0446\u0435\u043B\u0435\u0432\u043E\u0435 sigma z = {0}; \u043E\u043A\u043D\u043E = {1} x {2}",
+        ProcessingTimeFormat = "\u0432\u0440\u0435\u043C\u044F \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0438 = {0:0.###} \u043C\u0441",
         BrightnessStatsFormat = "\u044F\u0440\u043A. \u0441\u0440\u0435\u0434.={0:0.0}; \u0421\u041A\u041E \u044F\u0440\u043A.={1:0.0}; \u0434\u0438\u0430\u043F\u0430\u0437\u043E\u043D={2}-{3}",
         AdaptiveQInfo = "\u0430\u0434\u0430\u043F\u0442\u0438\u0432\u043D\u043E",
         NotUsedInfo = "\u043D\u0435 \u0438\u0441\u043F."
@@ -132,6 +140,9 @@ internal sealed class UiTextSet
 {
     internal required string FormTitle { get; init; }
     internal required string LanguageLabel { get; init; }
+    internal required string ThemeLabel { get; init; }
+    internal required string LightTheme { get; init; }
+    internal required string DarkTheme { get; init; }
     internal required string RussianLanguage { get; init; }
     internal required string EnglishLanguage { get; init; }
     internal required string LoadButton { get; init; }
@@ -174,6 +185,7 @@ internal sealed class UiTextSet
     internal required string GlobalDetailsFormat { get; init; }
     internal required string LocalDetailsFormat { get; init; }
     internal required string LocalMeanTvDetailsFormat { get; init; }
+    internal required string ProcessingTimeFormat { get; init; }
     internal required string BrightnessStatsFormat { get; init; }
     internal required string AdaptiveQInfo { get; init; }
     internal required string NotUsedInfo { get; init; }
